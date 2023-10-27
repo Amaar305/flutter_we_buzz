@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "156041214605",
+    "project_id": "my-hi-tweet",
+    "storage_bucket": "my-hi-tweet.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:156041214605:android:0c581756a7a84d7d58c0c4",
+        "android_client_info": {
+          "package_name": "com.example.hi_tweet"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBzqSBxb1dnRrnOqp1kXzB6yXUS3ym5Ii8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
