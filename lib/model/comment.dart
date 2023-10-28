@@ -1,7 +1,8 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
-import 'dart:convert';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+
+
+
 
 class Comment {
   final String id;
@@ -18,28 +19,29 @@ class Comment {
     required this.replies,
   });
 
+  // Create a factory constructor for decoding from JSON
+  factory Comment.fromJson(Map<String, dynamic> json) {
+    List<Comment> replies = (json['replies'] as List)
+        .map((reply) => Comment.fromJson(reply))
+        .toList();
 
-  Map<String, dynamic> toMap() {
-    return <String, dynamic>{
+    return Comment(
+      id: json['id'],
+      authorId: json['authorId'],
+      text: json['text'],
+      createdAt: json['createdAt'],
+      replies: replies,
+    );
+  }
+
+  // Create a method for encoding to JSON
+  Map<String, dynamic> toJson() {
+    return {
       'id': id,
       'authorId': authorId,
       'text': text,
       'createdAt': createdAt,
-      'replies': replies.map((x) => x.toMap()).toList(),
+      'replies': replies.map((reply) => reply.toJson()).toList(),
     };
   }
-
-  factory Comment.fromMap(Map<String, dynamic> map) {
-    return Comment(
-      id: map['id'] as String,
-      authorId: map['authorId'] as String,
-      text: map['text'] as String,
-      createdAt: map['createdAt'] as Timestamp,
-      replies: List<Comment>.from((map['replies'] as List<int>).map<Comment>((x) => Comment.fromMap(x as Map<String,dynamic>),),),
-    );
-  }
-
-  String toJson() => json.encode(toMap());
-
-  factory Comment.fromJson(String source) => Comment.fromMap(json.decode(source) as Map<String, dynamic>);
 }

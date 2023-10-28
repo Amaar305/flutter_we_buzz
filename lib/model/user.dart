@@ -1,10 +1,12 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class CampusBuzzUser {
+class WeBuzzUser {
   final String userId;
   final String email;
+  final String name;
   final bool isOnline;
   final bool isStaff;
   final bool isAdmin;
@@ -12,44 +14,42 @@ class CampusBuzzUser {
   final bool isCompleteness;
   final bool isVerified;
   final Timestamp createdAt;
-  final List<CampusBuzzUser> followers;
-  final List<CampusBuzzUser> following;
+  final String lastActive;
+
   final String location;
   final Timestamp? lastSeen;
 
   final String pushToken;
-  final String name;
-  final String? bio;
+  final String bio;
   final String? imageUrl;
   final String? program;
   final String? level;
   final String? phone;
   final Timestamp? lastUpdatedPassword;
-  CampusBuzzUser({
+  WeBuzzUser({
     required this.userId,
     required this.email,
+    required this.name,
     required this.isOnline,
     required this.isStaff,
     required this.isAdmin,
     required this.notification,
-    required this.createdAt,
-    required this.followers,
-    required this.following,
-    required this.pushToken,
-    required this.location,
     required this.isCompleteness,
     required this.isVerified,
+    required this.createdAt,
+    required this.lastActive,
+    required this.location,
     this.lastSeen,
-    required this.name,
-    this.bio,
+    required this.pushToken,
+    this.bio = 'Hey, I\'m using We Buzz!',
     this.imageUrl,
     this.program,
     this.level,
-    this.lastUpdatedPassword,
     this.phone,
+    this.lastUpdatedPassword,
   });
 
-  CampusBuzzUser copyWith({
+  WeBuzzUser copyWith({
     String? userId,
     String? email,
     bool? isOnline,
@@ -60,8 +60,6 @@ class CampusBuzzUser {
     bool? isVerified,
     Timestamp? lastSeen,
     Timestamp? createdAt,
-    List<CampusBuzzUser>? followers,
-    List<CampusBuzzUser>? following,
     String? pushToken,
     String? name,
     String? bio,
@@ -71,8 +69,9 @@ class CampusBuzzUser {
     String? phone,
     String? location,
     Timestamp? lastUpdatedPassword,
+    String? lastActive,
   }) {
-    return CampusBuzzUser(
+    return WeBuzzUser(
       userId: userId ?? this.userId,
       email: email ?? this.email,
       isOnline: isOnline ?? this.isOnline,
@@ -81,8 +80,6 @@ class CampusBuzzUser {
       notification: notification ?? this.notification,
       lastSeen: lastSeen ?? this.lastSeen,
       createdAt: createdAt ?? this.createdAt,
-      followers: followers ?? this.followers,
-      following: following ?? this.following,
       pushToken: pushToken ?? this.pushToken,
       name: name ?? this.name,
       bio: bio ?? this.bio,
@@ -90,6 +87,7 @@ class CampusBuzzUser {
       program: program ?? this.program,
       level: level ?? this.level,
       lastUpdatedPassword: lastUpdatedPassword ?? this.lastUpdatedPassword,
+      lastActive: lastActive ?? this.lastActive,
       phone: phone ?? this.phone,
       location: location ?? this.location,
       isCompleteness: isCompleteness ?? this.isCompleteness,
@@ -107,8 +105,6 @@ class CampusBuzzUser {
       'notification': notification,
       'lastSeen': lastSeen,
       'createdAt': createdAt,
-      'followers': followers,
-      'following': following,
       'pushToken': pushToken,
       'name': name,
       'bio': bio,
@@ -120,16 +116,17 @@ class CampusBuzzUser {
       'isCompleteness': isCompleteness,
       'isVerified': isVerified,
       'location': location,
+      'lastActive': lastActive,
     };
   }
 
-  factory CampusBuzzUser.fromDocument(DocumentSnapshot doc) {
+  factory WeBuzzUser.fromDocument(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    return CampusBuzzUser.fromMap(data);
+    return WeBuzzUser.fromMap(data);
   }
 
-  factory CampusBuzzUser.fromMap(Map<String, dynamic> map) {
-    return CampusBuzzUser(
+  factory WeBuzzUser.fromMap(Map<String, dynamic> map) {
+    return WeBuzzUser(
       userId: map['userId'] as String,
       email: map['email'] as String,
       isOnline: map['isOnline'] as bool,
@@ -138,19 +135,14 @@ class CampusBuzzUser {
       notification: map['notification'] as bool,
       lastSeen: map['lastSeen'] as Timestamp?,
       createdAt: map['createdAt'] as Timestamp,
-      followers: (map['followers'] as List<dynamic>)
-          .map((user) => CampusBuzzUser.fromJson(user))
-          .toList(),
-      following: (map['following'] as List<dynamic>)
-          .map((user) => CampusBuzzUser.fromJson(user))
-          .toList(),
       pushToken: map['pushToken'] as String,
-      bio: map['bio'] as String?,
+      bio: map['bio'] as String,
       imageUrl: map['imageUrl'] as String?,
       program: map['program'] as String?,
       level: map['level'] as String?,
       name: map['name'] as String,
       lastUpdatedPassword: map['lastUpdatedPassword'] as Timestamp?,
+      lastActive: map['lastActive'] as String,
       phone: map['phone'] as String?,
       location: map['location'] as String,
       isCompleteness: map['isCompleteness'] as bool,
@@ -160,11 +152,11 @@ class CampusBuzzUser {
 
   String toJson() => json.encode(toMap());
 
-  factory CampusBuzzUser.fromJson(String source) =>
-      CampusBuzzUser.fromMap(json.decode(source) as Map<String, dynamic>);
+  factory WeBuzzUser.fromJson(String source) =>
+      WeBuzzUser.fromMap(json.decode(source) as Map<String, dynamic>);
 
   @override
   String toString() {
-    return 'CampusBuzzUser(userId: $userId, email: $email, isOnline: $isOnline, isStaff: $isStaff, isAdmin: $isAdmin, notification: $notification, lastSeen: $lastSeen, createdAt: $createdAt, followers: $followers, following: $following, pushToken: $pushToken, name: $name, bio: $bio, imageUrl: $imageUrl, program: $program, level: $level, lastUpdatedPassword: $lastUpdatedPassword, phone:$phone, followers: $followers, following: $following location: $location)';
+    return 'CampusBuzzUser(userId: $userId, email: $email, isOnline: $isOnline, isStaff: $isStaff, isAdmin: $isAdmin, notification: $notification, lastSeen: $lastSeen, createdAt: $createdAt, followers: pushToken: $pushToken, name: $name, bio: $bio, imageUrl: $imageUrl, program: $program, level: $level, lastUpdatedPassword: $lastUpdatedPassword, phone:$phone, location: $location)';
   }
 }

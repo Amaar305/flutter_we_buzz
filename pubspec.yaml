@@ -54,6 +54,9 @@ dependencies:
   full_screen_image: ^2.0.0
   geolocator: ^10.1.0
   geocoding: ^2.1.1
+  emoji_picker_flutter: ^1.6.2
+  firebase_messaging: ^14.7.2
+  flutter_notification_channel: ^2.0.0
 
 dev_dependencies:
   flutter_test:

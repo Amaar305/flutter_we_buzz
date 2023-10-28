@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:full_screen_image/full_screen_image.dart';
 
 class FQUsers extends StatelessWidget {
   const FQUsers({
@@ -19,9 +20,12 @@ class FQUsers extends StatelessWidget {
           CircleAvatar(
             radius: 32,
             backgroundColor: Theme.of(context).colorScheme.secondary,
-            child: CircleAvatar(
-              radius: 30,
-              backgroundImage: AssetImage(imageUrl),
+            child: FullScreenWidget(
+              disposeLevel: DisposeLevel.High,
+              child: CircleAvatar(
+                radius: 30,
+                backgroundImage: AssetImage(imageUrl),
+              ),
             ),
           ),
           if (isOnline)

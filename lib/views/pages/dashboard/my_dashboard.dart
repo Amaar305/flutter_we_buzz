@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../chat/chat_page.dart';
+import '../chat/recent_chat_page.dart';
 import '../home/home_page.dart';
-import '../notifications/notification_page.dart';
+import '../notification/notifications_page.dart';
 import '../profile/profile_page.dart';
 import 'dashboard_controller.dart';
 
@@ -26,7 +26,7 @@ class _MyBottomNavBarState extends State<MyBottomNavBar> {
               index: controller.tabIndex,
               children: const [
                 HomePage(),
-                ChatPage(),
+                RecentChatPage(),
                 NotificationsPage(),
                 ProfilePage(),
               ],

@@ -22,6 +22,7 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
+    final buzzController = HomeController.homeController;
     return Scaffold(
       floatingActionButton: TextButton.icon(
         style: TextButton.styleFrom(
@@ -164,8 +165,8 @@ class ProfilePage extends StatelessWidget {
                                         } else {}
                                         return Text(
                                           controller.currentUser != null
-                                              ? controller.currentUser!.bio ??
-                                                  'not set'
+                                              ? controller.currentUser!.bio
+                                                
                                               : 'loading',
                                           textAlign: TextAlign.justify,
                                           maxLines: 3,
@@ -216,11 +217,11 @@ class ProfilePage extends StatelessWidget {
             children: [
               Padding(
                 padding: const EdgeInsets.only(top: 15),
-                child: GetBuilder<HomeController>(builder: (controll) {
-                  final myPost = controll.tweetBuzz
+                child: Obx(() {
+                  final myPost = buzzController.tweetBuzz
                       .where((buzz) =>
                           buzz.authorId ==
-                          CurrentLoggeedInUser.currentUserId!.uid)
+                          CurrentLoggeedInUser.currenLoggedIntUser!.uid)
                       .toList();
                   return ListView.builder(
                     scrollDirection: Axis.vertical,

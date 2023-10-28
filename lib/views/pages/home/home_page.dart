@@ -11,46 +11,59 @@ class HomePage extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70),
-        child: GetBuilder<HomeController>(
-          builder: (_) {
-            return AnimatedCrossFade(
-              duration: const Duration(milliseconds: 150),
-              crossFadeState: controller.isSearched.isTrue
-                  ? CrossFadeState.showSecond
-                  : CrossFadeState.showFirst,
-              firstChild: MyAppBar(controller: controller),
-              secondChild: AppbarSearchField(controller: controller),
-              firstCurve: Curves.easeInOut,
-              secondCurve: Curves.easeIn,
-            );
-          },
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Get.toNamed(CreateTweetPage.routeName),
-        tooltip: 'Create',
-        child: const Icon(Icons.add),
-      ),
-      body: Obx(
-        () {
-          return controller.tweetBuzz.isNotEmpty
-              ? ListView.builder(
-                  itemCount: controller.isTyping.isTrue
-                      ? controller.searchItems.length
-                      : controller.tweetBuzz.length,
-                  itemBuilder: (context, index) => ReusableCard(
-                    tweet: controller.isTyping.isTrue
-                        ? controller.searchItems[index]
-                        : controller.tweetBuzz[index],
-                  ),
-                )
-              : const Center(
-                  child: CircularProgressIndicator(),
-                );
+    return GestureDetector(
+      // For hiding keyboad when tap is detected
+      onTap: () => Focus.of(context).unfocus(),
+      child: WillPopScope(
+        // if searching is on and back button is pressed then close search
+        // else close the current page on back button
+        onWillPop: () {
+          // TODO willpopscoope might not work!
+          controller.clearAndSearch();
+          return Future.value(false);
         },
+        child: Scaffold(
+          appBar: PreferredSize(
+            preferredSize: const Size.fromHeight(70),
+            child: GetBuilder<HomeController>(
+              builder: (_) {
+                return AnimatedCrossFade(
+                  duration: const Duration(milliseconds: 150),
+                  crossFadeState: controller.isSearched.isTrue
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
+                  firstChild: MyAppBar(controller: controller),
+                  secondChild: AppbarSearchField(controller: controller),
+                  firstCurve: Curves.easeInOut,
+                  secondCurve: Curves.easeIn,
+                );
+              },
+            ),
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () => Get.toNamed(CreateTweetPage.routeName),
+            tooltip: 'Create',
+            child: const Icon(Icons.add),
+          ),
+          body: Obx(
+            () {
+              return controller.tweetBuzz.isNotEmpty
+                  ? ListView.builder(
+                      itemCount: controller.isTyping.isTrue
+                          ? controller.searchItems.length
+                          : controller.tweetBuzz.length,
+                      itemBuilder: (context, index) => ReusableCard(
+                        tweet: controller.isTyping.isTrue
+                            ? controller.searchItems[index]
+                            : controller.tweetBuzz[index],
+                      ),
+                    )
+                  : const Center(
+                      child: CircularProgressIndicator(),
+                    );
+            },
+          ),
+        ),
       ),
     );
   }
@@ -146,7 +159,6 @@ class MyAppBar extends StatelessWidget {
           icon:
               Icon(controller.isSearched.isFalse ? Icons.search : Icons.cancel),
         ),
-       
       ],
     );
   }

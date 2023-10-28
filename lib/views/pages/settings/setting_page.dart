@@ -51,8 +51,9 @@ class SettingPage extends GetView<SettingsController> {
                           }),
                           MySettingOption1(
                             iconData: Icons.email,
-                            subtitle:
-                                CurrentLoggeedInUser.currentUserId!.email ?? '',
+                            subtitle: CurrentLoggeedInUser
+                                    .currenLoggedIntUser!.email ??
+                                '',
                             title: 'Email',
                           ),
                           const MySettingOption1(

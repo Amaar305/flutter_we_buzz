@@ -29,7 +29,7 @@ class CreateTweetPage extends GetView<CreateTweetController> {
                     icon: const Icon(Icons.close),
                   ),
                   const Text(
-                    'New Tweet',
+                    'New Buzz',
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
@@ -42,9 +42,10 @@ class CreateTweetPage extends GetView<CreateTweetController> {
                   children: [
                     TextFormField(
                       controller: controller.textEditingController,
+                      keyboardType: TextInputType.multiline,
                       decoration: const InputDecoration(
                         border: InputBorder.none,
-                        hintText: 'Start a tweet...',
+                        hintText: 'Start a buzz...',
                       ),
                       maxLength: 250,
                       maxLines: 2,
@@ -76,7 +77,8 @@ class CreateTweetPage extends GetView<CreateTweetController> {
                                   child: Padding(
                                     padding: const EdgeInsets.all(8.0),
                                     child: GestureDetector(
-                                      onTap: () => controller.cancleImage(),
+                                      onTap: () =>
+                                          controller.cancleImage(false),
                                       child: const CircleAvatar(
                                         radius: 15,
                                         backgroundColor: Colors.white54,

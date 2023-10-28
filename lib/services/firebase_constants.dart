@@ -1,3 +1,4 @@
-
-   const String firebaseCampusBuzz = 'campus_buzz';
-   const String firebaseCampusBuzzUser = 'campus_users';
+const String firebaseWeBuzz = 'we_buzz';
+const String firebaseWeBuzzUser = 'users';
+const String firebaseReBuzz = 'rebuzz';
+const String firebaseMessages = 'messages';

@@ -1,23 +1,24 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:hi_tweet/services/current_user.dart';
 import 'package:nb_utils/nb_utils.dart';
 import 'dart:io';
 
-import '../model/tweet.dart';
 import '../model/user.dart';
+import '../model/webuzz_model.dart';
 import 'firebase_constants.dart';
 
 class FirebaseService {
   static final FirebaseFirestore firebaseFirestore = FirebaseFirestore.instance;
 
   static Future createUserInFirestore(
-    CampusBuzzUser campusBuzzUser,
+    WeBuzzUser campusBuzzUser,
     String userId,
   ) async {
     try {
       await firebaseFirestore
-          .collection(firebaseCampusBuzzUser)
+          .collection(firebaseWeBuzzUser)
           .doc(userId)
           .set(campusBuzzUser.toMap());
     } catch (e) {
@@ -25,9 +26,9 @@ class FirebaseService {
     }
   }
 
-  static Future createTweetInFirestore(TweetBuzz tweet) async {
+  static Future createTweetInFirestore(WeBuzz weBuzz) async {
     try {
-      await firebaseFirestore.collection(firebaseCampusBuzz).add(tweet.toMap());
+      await firebaseFirestore.collection(firebaseWeBuzz).add(weBuzz.toJson());
     } catch (e) {
       debugPrint(e.toString());
     }
@@ -37,8 +38,9 @@ class FirebaseService {
     String imageUrl;
 
     try {
-      Reference storageReference =
-          FirebaseStorage.instance.ref().child("$folderName/${DateTime.now()}.jpg");
+      Reference storageReference = FirebaseStorage.instance
+          .ref()
+          .child("$folderName/${DateTime.now()}.jpg");
       UploadTask uploadTask = storageReference.putFile(imageFile);
       TaskSnapshot taskSnapshot = await uploadTask.whenComplete(() => null);
 
@@ -59,5 +61,16 @@ class FirebaseService {
     } catch (e) {
       log("Error deleting image: $e");
     }
+  }
+
+  // update online or last active status of user
+  static Future<void> updateActiveStatus(bool isOnline) async {
+    await FirebaseService.firebaseFirestore
+        .collection(firebaseWeBuzzUser)
+        .doc(CurrentLoggeedInUser.currenLoggedIntUser!.uid)
+        .update({
+      'isOnline': isOnline,
+      'lastActive': DateTime.now().millisecondsSinceEpoch.toString(),
+    });
   }
 }

@@ -21,7 +21,7 @@ class AppController extends GetxController {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final CollectionReference _collectionReference =
-      FirebaseService.firebaseFirestore.collection(firebaseCampusBuzzUser);
+      FirebaseService.firebaseFirestore.collection(firebaseWeBuzzUser);
 
   int tabIndex = 0;
 
@@ -40,15 +40,14 @@ class AppController extends GetxController {
   // email, password and name..
   late Rx<User?> _user;
 
-  RxList<CampusBuzzUser> weBuzzLists = RxList([]);
+  RxList<WeBuzzUser> weBuzzLists = RxList<WeBuzzUser>([]);
 
-  CampusBuzzUser? currentUser;
+  WeBuzzUser? currentUser;
 
   void changeTabIndex(int index) {
     tabIndex = index;
     update();
   }
-
 
   void canOrCannotSee() {
     obscureText = !obscureText;
@@ -58,6 +57,7 @@ class AppController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+
     emailEditingController = TextEditingController();
     passwordEditingController = TextEditingController();
     nameEditingController = TextEditingController();
@@ -86,7 +86,7 @@ class AppController extends GetxController {
 
     Future.delayed(const Duration(seconds: 2), () {
       if (currentUser != null) {
-        bioEditingController!.text = currentUser!.bio ?? '';
+        bioEditingController!.text = currentUser!.bio;
         editNameEditingController!.text = currentUser!.name;
         lavelEditingController!.text = currentUser!.level ?? '';
         phoneEditingController!.text = currentUser!.phone ?? '';
@@ -115,13 +115,14 @@ class AppController extends GetxController {
   Future<void> fetchUserDetails(String currentId) async {
     try {
       final result = await FirebaseService.firebaseFirestore
-          .collection(firebaseCampusBuzzUser)
+          .collection(firebaseWeBuzzUser)
           .doc(currentId)
           .get();
 
       if (result.data() != null) {
-        currentUser = CampusBuzzUser.fromDocument(result);
+        currentUser = WeBuzzUser.fromDocument(result);
       } else {
+        // TODO autonatically create user in firestore
         logOut();
         CustomSnackBar.showSnackBAr(
           context: Get.context,
@@ -139,6 +140,15 @@ class AppController extends GetxController {
       update();
     } catch (e) {
       debugPrint(e.toString());
+      CustomSnackBar.showSnackBAr(
+        context: Get.context,
+        title: 'Error',
+        message:
+            'Something Went wrong! while trying to sign ${_auth.currentUser!.email} please try agin later',
+        backgroundColor:
+            Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
+      );
+      logOut();
     }
   }
 
@@ -170,7 +180,7 @@ class AppController extends GetxController {
         );
         QuerySnapshot<Map<String, dynamic>> result = await FirebaseService
             .firebaseFirestore
-            .collection(firebaseCampusBuzzUser)
+            .collection(firebaseWeBuzzUser)
             .where('email', isEqualTo: emailEditingController.text.trim())
             .get();
 
@@ -247,7 +257,7 @@ class AppController extends GetxController {
           );
           return;
         }
-        final campusBuzzUser = CampusBuzzUser(
+        final campusBuzzUser = WeBuzzUser(
           userId: credential.user!.uid,
           email: emailEditingController.text.trim(),
           isOnline: true,
@@ -255,13 +265,12 @@ class AppController extends GetxController {
           isAdmin: false,
           notification: true,
           createdAt: Timestamp.now(),
-          followers: [],
-          following: [],
           pushToken: '',
           isCompleteness: false,
           isVerified: false,
           location: city,
           name: nameEditingController.text.trim(),
+          lastActive: DateTime.now().millisecondsSinceEpoch.toString(),
         );
 
         await FirebaseService.createUserInFirestore(
@@ -503,9 +512,11 @@ class AppController extends GetxController {
     clearTextControllers();
   }
 
-  Stream<List<CampusBuzzUser>> _streamTweetBuzz(){
-    return _collectionReference.snapshots().map((query) => query.docs.map((user) => CampusBuzzUser.fromDocument(user)).toList());
+  Stream<List<WeBuzzUser>> _streamTweetBuzz() {
+    return FirebaseService.firebaseFirestore
+        .collection(firebaseWeBuzzUser)
+        .snapshots()
+        .map((query) =>
+            query.docs.map((user) => WeBuzzUser.fromDocument(user)).toList());
   }
-
-  
 }

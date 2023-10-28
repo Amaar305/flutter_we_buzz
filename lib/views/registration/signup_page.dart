@@ -77,6 +77,7 @@ class _SignUpPageState extends State<SignUpPage> {
                         }
                         return null;
                       },
+                      keyboardType: TextInputType.text,
                     ),
                     GetBuilder<AppController>(
                       builder: (cont) {

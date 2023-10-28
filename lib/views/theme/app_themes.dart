@@ -57,13 +57,13 @@ class AppThemes {
 
     // BottomNavigationBar
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-      backgroundColor: Colors.white,
+      backgroundColor: kDefaultGrey,
       selectedItemColor: kPrimary,
       unselectedItemColor: Colors.black,
     ),
     useMaterial3: true,
     colorScheme: const ColorScheme.light(
-      background: kSecondary,
+      background: kDefaultGrey,
       primary: kPrimary,
       secondary: kDefaultGrey,
     ),
