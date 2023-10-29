@@ -1,11 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:full_screen_image/full_screen_image.dart';
 import 'package:get/get.dart';
 
 import '../../../model/user.dart';
 import '../../../model/webuzz_model.dart';
-import '../../../services/current_user.dart';
 import '../../pages/dashboard/dashboard_controller.dart';
 import '../../pages/home/home_controller.dart';
 import '../../utils/method_utils.dart';
@@ -151,9 +151,9 @@ class ReusableCard extends StatelessWidget {
                 Row(
                   children: [
                     GetBuilder<HomeController>(builder: (cont) {
-                      if (CurrentLoggeedInUser.currenLoggedIntUser != null) {
+                      if (FirebaseAuth.instance.currentUser != null) {
                         final loggedInUserId =
-                            CurrentLoggeedInUser.currenLoggedIntUser!.uid;
+                           FirebaseAuth.instance.currentUser!.uid;
                         return GestureDetector(
                           onTap: () {
                             cont.updateViews(tweet, 'likes');

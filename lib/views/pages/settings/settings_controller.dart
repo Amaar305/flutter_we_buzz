@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
+import '../../../services/firebase_service.dart';
+
 class SettingsController extends GetxController {
   final _getStorage = GetStorage();
   final storageKey = 'isDarkMode';
@@ -26,6 +28,8 @@ class SettingsController extends GetxController {
   }
 
   void logout() async {
+    await FirebaseService.updateActiveStatus(false);
+
     await _auth.signOut();
     update();
   }

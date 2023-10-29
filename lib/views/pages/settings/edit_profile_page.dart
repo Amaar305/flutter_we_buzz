@@ -7,10 +7,16 @@ import '../../widgets/home/my_button.dart';
 import '../../widgets/home/my_textfield.dart';
 import '../dashboard/dashboard_controller.dart';
 
-class EditProfilePage extends StatelessWidget {
+class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
   static const routeName = '/edit-profile-page';
 
+  @override
+  State<EditProfilePage> createState() => _EditProfilePageState();
+}
+
+class _EditProfilePageState extends State<EditProfilePage> {
+  final _formKey = GlobalKey<FormState>();
   @override
   Widget build(BuildContext context) {
     final controller = AppController.instance;
@@ -21,6 +27,7 @@ class EditProfilePage extends StatelessWidget {
       body: Padding(
         padding: kDefaultAppPadding,
         child: Form(
+          key: _formKey,
           child: Center(
             child: SingleChildScrollView(
               child: Column(
@@ -80,6 +87,13 @@ class EditProfilePage extends StatelessWidget {
                     controller: controller.phoneEditingController!,
                     hintext: 'Phone',
                     keyboardType: TextInputType.phone,
+                    validator: (value) {
+                      // TODO gotta update this
+                      if (value!.length > 12) {
+                        return 'Invalid phone number!';
+                      }
+                      return null;
+                    },
                   ),
                   MyTextField(
                     controller: controller.lavelEditingController!,
@@ -89,7 +103,15 @@ class EditProfilePage extends StatelessWidget {
                   const SizedBox(height: 12),
                   MyButton(
                     text: 'Edit',
-                    onPressed: () => controller.editUserInfo(),
+                    onPressed: () {
+                      final isValid = _formKey.currentState!.validate();
+                      FocusScope.of(context).unfocus();
+
+                      if (isValid) {
+                        _formKey.currentState!.save();
+                        controller.editUserInfo();
+                      }
+                    },
                   ),
                 ],
               ),

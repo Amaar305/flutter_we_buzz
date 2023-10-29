@@ -1,9 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hi_tweet/services/current_user.dart';
-import 'package:hi_tweet/views/pages/dashboard/dashboard_controller.dart';
 import 'package:nb_utils/nb_utils.dart';
 
+import '../dashboard/dashboard_controller.dart';
 import 'edit_profile_page.dart';
 import 'settings_controller.dart';
 
@@ -51,8 +51,8 @@ class SettingPage extends GetView<SettingsController> {
                           }),
                           MySettingOption1(
                             iconData: Icons.email,
-                            subtitle: CurrentLoggeedInUser
-                                    .currenLoggedIntUser!.email ??
+                            subtitle:
+                                FirebaseAuth.instance.currentUser!.email ??
                                 '',
                             title: 'Email',
                           ),
@@ -143,7 +143,7 @@ class SettingPage extends GetView<SettingsController> {
                       ),
                     ),
                     TextButton(
-                      onPressed: () => controller.logout(),
+                      onPressed: () => AppController.instance.logOut(),
                       child: const Text(
                         'LOG OUT',
                         style: TextStyle(

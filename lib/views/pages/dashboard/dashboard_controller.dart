@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hi_tweet/views/utils/custom_full_screen_dialog.dart';
@@ -19,7 +20,8 @@ import 'my_dashboard.dart';
 class AppController extends GetxController {
   static AppController instance = Get.find();
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  FirebaseAuth auth = FirebaseAuth.instance;
+
   final CollectionReference _collectionReference =
       FirebaseService.firebaseFirestore.collection(firebaseWeBuzzUser);
 
@@ -74,10 +76,10 @@ class AppController extends GetxController {
     super.onReady();
 
     // Casting to the value of _user to Rx value
-    _user = Rx<User?>(_auth.currentUser);
+    _user = Rx<User?>(auth.currentUser);
 
     // Whatever happen with user, will be notify
-    _user.bindStream(_auth.userChanges());
+    _user.bindStream(auth.userChanges());
 
     // ever function takes a listener (Firebase user),
     // and callback method, anytime something changes, the method will be notified
@@ -121,19 +123,48 @@ class AppController extends GetxController {
 
       if (result.data() != null) {
         currentUser = WeBuzzUser.fromDocument(result);
+        update();
+        await getFirebaseMessagingToken();
+
+        FirebaseService.updateActiveStatus(true);
       } else {
-        // TODO autonatically create user in firestore
-        logOut();
+        //  autonatically create user in firestore
+        // get city name
+        String city = await getCurrentCity();
+
+        WeBuzzUser weBuzzUser = WeBuzzUser(
+          userId: auth.currentUser!.uid,
+          email: auth.currentUser!.email!,
+          name: 'New User',
+          isOnline: true,
+          isStaff: false,
+          isAdmin: false,
+          notification: true,
+          isCompleteness: false,
+          isVerified: false,
+          createdAt: Timestamp.now(),
+          lastActive: DateTime.now().millisecondsSinceEpoch.toString(),
+          location: city,
+          pushToken: '',
+          followers: [],
+          following: [],
+        );
+// TODO might cause error!
+        await FirebaseService.createUserInFirestore(
+                weBuzzUser, auth.currentUser!.uid)
+            .then((value) {
+          fetchUserDetails(auth.currentUser!.uid);
+        });
         CustomSnackBar.showSnackBAr(
           context: Get.context,
           title: 'Warning!',
           message:
-              'No user associated to email ${_auth.currentUser!.email} in our database!, you might try to create another account.',
+              'No user associated to email ${auth.currentUser!.email} in our database!, however, we automatically registerred you. You might change your details in profile page.',
           backgroundColor:
               Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
         );
         debugPrint(
-          'No user associated to email ${_auth.currentUser!.email} in our database!, you might try to create another account.',
+          'No user associated to email ${auth.currentUser!.email} in our database!, you might try to create another account.',
         );
       }
 
@@ -144,7 +175,7 @@ class AppController extends GetxController {
         context: Get.context,
         title: 'Error',
         message:
-            'Something Went wrong! while trying to sign ${_auth.currentUser!.email} please try agin later',
+            'Something Went wrong! while trying to sign ${auth.currentUser!.email} please try agin later',
         backgroundColor:
             Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
       );
@@ -153,7 +184,13 @@ class AppController extends GetxController {
   }
 
   void logOut() async {
-    await _auth.signOut();
+    changeTabIndex(0);
+    // for updating user status isOnline to false
+
+    await FirebaseService.updateActiveStatus(false);
+    // ChatController.instance.weBuzzLists.value = [];
+
+    await auth.signOut().then((value) => auth = FirebaseAuth.instance);
     obscureText = false;
     update();
   }
@@ -174,7 +211,7 @@ class AppController extends GetxController {
       // Login
       CustomFullScreenDialog.showDialog();
       try {
-        await _auth.signInWithEmailAndPassword(
+        await auth.signInWithEmailAndPassword(
           email: emailEditingController.text.trim(),
           password: passwordEditingController.text.trim(),
         );
@@ -213,18 +250,31 @@ class AppController extends GetxController {
               'More than one user associated to email ${emailEditingController.text}');
           return;
         }
-        // currentUser = CampusBuzzUser.fromDocument(result.docs.first);
+        clearTextControllers();
+        update();
       } on FirebaseAuthException catch (err) {
         CustomFullScreenDialog.cancleDialog();
-        // debugPrint(err.message);
-        CustomSnackBar.showSnackBAr(
-          context: Get.context,
-          title: "About user",
-          message: err.message.toString(),
-          backgroundColor:
-              Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
-        );
+
+        if (err.code.contains('INVALID_LOGIN_CREDENTIALS')) {
+          CustomSnackBar.showSnackBAr(
+            context: Get.context,
+            title: "About user",
+            message: 'Invalid email address or password',
+            backgroundColor:
+                Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
+          );
+        } else {
+          CustomSnackBar.showSnackBAr(
+            context: Get.context,
+            title: "About user",
+            message: err.message.toString(),
+            backgroundColor:
+                Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
+          );
+        }
       } catch (e) {
+        
+        CustomFullScreenDialog.cancleDialog();
         CustomSnackBar.showSnackBAr(
           context: Get.context,
           title: "About user",
@@ -232,9 +282,7 @@ class AppController extends GetxController {
           backgroundColor:
               Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
         );
-        CustomFullScreenDialog.cancleDialog();
       }
-      update();
     } else if (provider == 1) {
       // register
       CustomFullScreenDialog.showDialog();
@@ -242,7 +290,7 @@ class AppController extends GetxController {
       String city = await getCurrentCity();
 
       try {
-        final credential = await _auth.createUserWithEmailAndPassword(
+        final credential = await auth.createUserWithEmailAndPassword(
           email: emailEditingController.text.trim(),
           password: passwordEditingController.text.trim(),
         );
@@ -271,26 +319,19 @@ class AppController extends GetxController {
           location: city,
           name: nameEditingController.text.trim(),
           lastActive: DateTime.now().millisecondsSinceEpoch.toString(),
+          followers: [],
+          following: [],
         );
 
         await FirebaseService.createUserInFirestore(
                 campusBuzzUser, credential.user!.uid)
-            .whenComplete(() async {});
+            .then((val) {
+          clearTextControllers();
+        });
 
         update();
       } on FirebaseAuthException catch (err) {
         CustomFullScreenDialog.cancleDialog();
-        debugPrint(
-            'this is the error codedeeeeeeeeeeeeeeeeeeeeeeeeeee ${err.code}');
-        if (err.code == 'INVALID_LOGIN_CREDENTIALS') {
-          CustomSnackBar.showSnackBAr(
-            context: Get.context,
-            title: "About user",
-            message: 'Your email or password is incorrect!',
-            backgroundColor:
-                Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
-          );
-        }
         CustomSnackBar.showSnackBAr(
           context: Get.context,
           title: "About user",
@@ -308,12 +349,9 @@ class AppController extends GetxController {
         );
         CustomFullScreenDialog.cancleDialog();
       }
-      update();
     } else {
       return;
     }
-    clearTextControllers();
-    update();
   }
 
 // Edit user profile
@@ -327,7 +365,7 @@ class AppController extends GetxController {
     } else {
       CustomFullScreenDialog.showDialog();
       try {
-        await _collectionReference.doc(_auth.currentUser!.uid).update({
+        await _collectionReference.doc(auth.currentUser!.uid).update({
           'bio': bioEditingController!.text.isEmpty
               ? currentUser!.bio
               : bioEditingController!.text.trim(),
@@ -338,13 +376,13 @@ class AppController extends GetxController {
               ? currentUser!.phone
               : phoneEditingController!.text.trim(),
           'level': lavelEditingController!.text.isEmpty
-              ? currentUser!.bio
+              ? currentUser!.level
               : lavelEditingController!.text.trim(),
         }).whenComplete(() {
           CustomFullScreenDialog.cancleDialog();
           Get.back();
         });
-        await fetchUserDetails(_auth.currentUser!.uid);
+        await fetchUserDetails(auth.currentUser!.uid);
         update();
       } catch (e) {
         CustomFullScreenDialog.cancleDialog();
@@ -365,12 +403,12 @@ class AppController extends GetxController {
     if (currentUser != null) {
       CustomFullScreenDialog.showDialog();
       try {
-        await _collectionReference.doc(_auth.currentUser!.uid).update({
+        await _collectionReference.doc(auth.currentUser!.uid).update({
           'notification': currentUser!.notification ? false : true,
         }).whenComplete(() {
           CustomFullScreenDialog.cancleDialog();
         });
-        await fetchUserDetails(_auth.currentUser!.uid);
+        await fetchUserDetails(auth.currentUser!.uid);
         update();
       } catch (e) {
         CustomFullScreenDialog.cancleDialog();
@@ -437,7 +475,7 @@ class AppController extends GetxController {
                 pickedImagePath, 'users/${currentUser!.userId}');
 
             // update the user image field in firestore
-            await _collectionReference.doc(_auth.currentUser!.uid).update({
+            await _collectionReference.doc(auth.currentUser!.uid).update({
               'imageUrl': downloadedImage,
             }).whenComplete(() {
               CustomFullScreenDialog.cancleDialog();
@@ -445,7 +483,7 @@ class AppController extends GetxController {
           }
 
           // update the user image field in firestore
-          await fetchUserDetails(_auth.currentUser!.uid);
+          await fetchUserDetails(auth.currentUser!.uid);
 
           isImagePicked = false;
           pickedImagePath = null;
@@ -478,14 +516,14 @@ class AppController extends GetxController {
                 pickedImagePath, 'users/${currentUser!.userId}');
 
             // update the user image field in firestore
-            await _collectionReference.doc(_auth.currentUser!.uid).update({
+            await _collectionReference.doc(auth.currentUser!.uid).update({
               'imageUrl': downloadedImage,
             }).whenComplete(() {
               CustomFullScreenDialog.cancleDialog();
             });
           }
 
-          await fetchUserDetails(_auth.currentUser!.uid);
+          await fetchUserDetails(auth.currentUser!.uid);
           isImagePicked = false;
           pickedImagePath = null;
           update();
@@ -518,5 +556,28 @@ class AppController extends GetxController {
         .snapshots()
         .map((query) =>
             query.docs.map((user) => WeBuzzUser.fromDocument(user)).toList());
+  }
+
+// for handling push notification
+  FirebaseMessaging firebaseMessaging = FirebaseMessaging.instance;
+
+// for getting firebase messaging token
+  Future<void> getFirebaseMessagingToken() async {
+    await firebaseMessaging.requestPermission();
+
+    await firebaseMessaging.getToken().then((f) {
+      if (f != null) {
+        log("Push Token: $f");
+        currentUser!.pushToken = f;
+      }
+    });
+    // FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    //   log('Got a message whilst in the foreground!');
+    //   log('Message data: ${message.data}');
+
+    //   if (message.notification != null) {
+    //     log('Message also contained a notification: ${message.notification}');
+    //   }
+    // });
   }
 }

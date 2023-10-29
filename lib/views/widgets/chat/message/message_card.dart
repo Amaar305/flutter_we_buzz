@@ -4,8 +4,8 @@ import 'package:full_screen_image/full_screen_image.dart';
 import 'package:get/get.dart';
 import 'package:hi_tweet/model/message_enum_type.dart';
 import 'package:hi_tweet/model/user.dart';
-import 'package:hi_tweet/services/current_user.dart';
 import 'package:hi_tweet/views/pages/chat/chat_controller.dart';
+import 'package:hi_tweet/views/pages/dashboard/dashboard_controller.dart';
 import 'package:hi_tweet/views/utils/method_utils.dart';
 
 import '../../../../model/message_model.dart';
@@ -17,7 +17,7 @@ class MessageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CurrentLoggeedInUser.currenLoggedIntUser!.uid == message.fromId
+    return AppController.instance.auth.currentUser!.uid == message.fromId
         ? _yelloMessage()
         : _whiteMessage();
   }

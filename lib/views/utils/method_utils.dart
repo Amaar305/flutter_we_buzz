@@ -54,7 +54,8 @@ class MethodUtils {
   }
 
   //  for getting a last message time (used in user card)
-  static String getLastMessageTime({required String time}) {
+  static String getLastMessageTime(
+      {required String time, bool showYear = false}) {
     final DateTime sent = DateTime.fromMillisecondsSinceEpoch(int.parse(time));
     final DateTime now = DateTime.now();
 
@@ -63,7 +64,9 @@ class MethodUtils {
         now.year == sent.year) {
       return TimeOfDay.fromDateTime(sent).format(Get.context!);
     }
-    return "${sent.day} ${_getMonth(sent)}";
+    return showYear
+        ? "${sent.day} ${_getMonth(sent)} ${sent.year}"
+        : "${sent.day} ${_getMonth(sent)}";
   }
 
   // for getting a month name from month no. or index

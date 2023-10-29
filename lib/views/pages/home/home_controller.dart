@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,7 +8,6 @@ import 'package:nb_utils/nb_utils.dart';
 
 import '../../../model/buzz_enum.dart';
 import '../../../model/webuzz_model.dart';
-import '../../../services/current_user.dart';
 import '../../../services/firebase_constants.dart';
 import '../../../services/firebase_service.dart';
 import '../../utils/custom_full_screen_dialog.dart';
@@ -28,12 +28,10 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    if (CurrentLoggeedInUser.currenLoggedIntUser != null) {
-      FirebaseService.updateActiveStatus(true);
-    }
+
     SystemChannels.lifecycle.setMessageHandler((message) {
       log('message: $message');
-      if (CurrentLoggeedInUser.currenLoggedIntUser != null) {
+      if (FirebaseAuth.instance.currentUser != null) {
         if (message.toString().contains('pause')) {
           FirebaseService.updateActiveStatus(false);
         }
@@ -91,8 +89,8 @@ class HomeController extends GetxController {
   }
 
   void updateViews(WeBuzz buzz, String field) async {
-    if (CurrentLoggeedInUser.currenLoggedIntUser != null) {
-      final loggedInUserId = CurrentLoggeedInUser.currenLoggedIntUser!.uid;
+    if (FirebaseAuth.instance.currentUser != null) {
+      final loggedInUserId = FirebaseAuth.instance.currentUser!.uid;
       CustomFullScreenDialog.showDialog();
 
       if (buzz.likes.contains(loggedInUserId)) {
@@ -128,9 +126,9 @@ class HomeController extends GetxController {
   // Repost a buzz
   void reTweetBuzz(WeBuzz currentBuzz) async {
     // Checking if currentuser is logged In
-    if (CurrentLoggeedInUser.currenLoggedIntUser != null) {
+    if (FirebaseAuth.instance.currentUser != null) {
       // Getting currentuser info
-      final currentUser = CurrentLoggeedInUser.currenLoggedIntUser;
+      final currentUser = FirebaseAuth.instance.currentUser;
 
       // Creating copy of the currentBuzz (Post)
       WeBuzz repost = currentBuzz.copyWith(
@@ -203,7 +201,7 @@ class HomeController extends GetxController {
   }
 
   Future reBuzz(WeBuzz webuzz, bool current) async {
-    final loggedInUserId = CurrentLoggeedInUser.currenLoggedIntUser!.uid;
+    final loggedInUserId = FirebaseAuth.instance.currentUser!.uid;
     if (current) {
       webuzz.reBuzzCount = webuzz.reBuzzCount - 1;
 

@@ -1,7 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:hi_tweet/services/current_user.dart';
+import 'package:hi_tweet/views/pages/dashboard/dashboard_controller.dart';
 import 'package:nb_utils/nb_utils.dart';
 import 'dart:io';
 
@@ -67,10 +68,11 @@ class FirebaseService {
   static Future<void> updateActiveStatus(bool isOnline) async {
     await FirebaseService.firebaseFirestore
         .collection(firebaseWeBuzzUser)
-        .doc(CurrentLoggeedInUser.currenLoggedIntUser!.uid)
+        .doc(FirebaseAuth.instance.currentUser!.uid)
         .update({
       'isOnline': isOnline,
       'lastActive': DateTime.now().millisecondsSinceEpoch.toString(),
+      'pushToken': AppController.instance.currentUser!.pushToken,
     });
   }
 }

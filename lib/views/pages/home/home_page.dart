@@ -13,7 +13,7 @@ class HomePage extends GetView<HomeController> {
   Widget build(BuildContext context) {
     return GestureDetector(
       // For hiding keyboad when tap is detected
-      onTap: () => Focus.of(context).unfocus(),
+      // onTap: () => Focus.of(context).unfocus(),
       child: WillPopScope(
         // if searching is on and back button is pressed then close search
         // else close the current page on back button
@@ -59,7 +59,10 @@ class HomePage extends GetView<HomeController> {
                       ),
                     )
                   : const Center(
-                      child: CircularProgressIndicator(),
+                      child: Text(
+                        'Be First To Create A Buzz!',
+                        style: TextStyle(fontSize: 20),
+                      ),
                     );
             },
           ),
@@ -151,7 +154,7 @@ class MyAppBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      title: const Text('H I, T W E E T'),
+      title: const Text(kAppName),
       centerTitle: false,
       actions: [
         IconButton(

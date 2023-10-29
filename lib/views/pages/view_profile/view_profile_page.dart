@@ -1,10 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fluentui_icons/fluentui_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:full_screen_image/full_screen_image.dart';
 import 'package:get/get.dart';
+import 'package:hi_tweet/model/user.dart';
 import 'package:hi_tweet/views/pages/dashboard/dashboard_controller.dart';
 import 'package:hi_tweet/views/utils/constants.dart';
 import 'package:hi_tweet/views/widgets/home/reusable_card.dart';
@@ -15,16 +15,52 @@ import '../../utils/method_utils.dart';
 import '../../widgets/profile/profile_option_setting.dart';
 import '../../widgets/profile/profile_tab_widget.dart';
 import '../home/home_controller.dart';
-import '../settings/setting_page.dart';
+import 'view_profile_controller.dart';
 
-class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+// View profile page ----> To view profile of a user
+class ViewProfilePage extends StatelessWidget {
+  ViewProfilePage({super.key, required this.weBuzzUser});
+
+  final WeBuzzUser weBuzzUser;
+
+  final viewProfileController = ViewProfileController.viewProfileController;
 
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     final buzzController = HomeController.homeController;
     return Scaffold(
+      floatingActionButton: Obx(() {
+        return TextButton.icon(
+          style: TextButton.styleFrom(
+            backgroundColor: kPrimary.withOpacity(0.8),
+          ),
+          label: Text(
+            viewProfileController.currentWeBuxxUser.value!.following
+                    .contains(weBuzzUser.userId)
+                ? 'UnFollow'
+                : 'Follow',
+            style: Theme.of(context)
+                .textTheme
+                .bodyLarge!
+                .copyWith(color: Colors.black),
+          ),
+          icon: const Icon(
+            Icons.add,
+            size: 30,
+            color: Colors.black,
+          ),
+          onPressed: () {
+            if (viewProfileController.currentWeBuxxUser.value!.following
+                .contains(weBuzzUser.userId)) {
+              viewProfileController.unfollowUser(weBuzzUser.userId);
+            } else {
+              viewProfileController.followUser(weBuzzUser);
+            }
+            // viewProfileController.followUser(weBuzzUser);
+          },
+        );
+      }),
       body: DefaultTabController(
         length: 2,
         child: NestedScrollView(
@@ -36,15 +72,6 @@ class ProfilePage extends StatelessWidget {
                 pinned: true,
                 titleSpacing: 0,
                 backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-                actions: [
-                  IconButton(
-                    onPressed: () => Get.toNamed(SettingPage.routeName),
-                    icon: const Icon(
-                      FluentSystemIcons.ic_fluent_settings_regular,
-                      size: 32,
-                    ),
-                  ),
-                ],
                 title: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Text(
@@ -97,11 +124,8 @@ class ProfilePage extends StatelessWidget {
                                           radius: size.height * 0.08,
                                           backgroundImage:
                                               CachedNetworkImageProvider(
-                                            controller.currentUser != null
-                                                ? controller.currentUser!
-                                                        .imageUrl ??
-                                                    defaultProfileImage
-                                                : defaultProfileImage,
+                                            weBuzzUser.imageUrl ??
+                                                defaultProfileImage,
                                           ),
                                         ),
                                       );
@@ -114,9 +138,7 @@ class ProfilePage extends StatelessWidget {
                                       GetBuilder<AppController>(
                                           builder: (controller) {
                                         return Text(
-                                          controller.currentUser == null
-                                              ? 'loading..'
-                                              : controller.currentUser!.name,
+                                          weBuzzUser.name,
                                           style: const TextStyle(
                                             fontSize: 20,
                                             fontWeight: FontWeight.bold,
@@ -136,25 +158,17 @@ class ProfilePage extends StatelessWidget {
                                   const SizedBox(height: 8),
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 20),
-                                    child: GetBuilder<AppController>(
-                                      builder: (controller) {
-                                        if (controller.currentUser != null) {
-                                        } else {}
-                                        return Text(
-                                          controller.currentUser != null
-                                              ? controller.currentUser!.bio
-                                              : 'loading',
-                                          textAlign: TextAlign.justify,
-                                          maxLines: 3,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                              fontSize: 16,
-                                              fontStyle: FontStyle.italic
-                                              // color: kDefaultGrey,
-                                              ),
-                                        );
-                                      },
+                                      horizontal: 20,
+                                    ),
+                                    child: Text(
+                                      weBuzzUser.bio,
+                                      textAlign: TextAlign.justify,
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontStyle: FontStyle.italic,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -172,7 +186,7 @@ class ProfilePage extends StatelessWidget {
                   const TabBar(
                     tabs: [
                       Tab(
-                        text: 'Tweet',
+                        text: 'Buzz',
                         icon: Icon(
                           FluentSystemIcons.ic_fluent_drafts_regular,
                         ),
@@ -195,10 +209,11 @@ class ProfilePage extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 15),
                 child: Obx(() {
+                  // Filter and return the user's tweet
                   final myPost = buzzController.tweetBuzz
-                      .where((buzz) =>
-                          buzz.authorId ==
-                          FirebaseAuth.instance.currentUser!.uid)
+                      .where(
+                        (buzz) => buzz.authorId == weBuzzUser.userId,
+                      )
                       .toList();
                   return myPost.isNotEmpty
                       ? ListView.builder(
@@ -232,46 +247,33 @@ class ProfilePage extends StatelessWidget {
                         subtitle: 'Computer Science',
                         title: 'Department',
                       ),
-                      GetBuilder<AppController>(builder: (controll) {
-                        return BasicInfoWidget(
+                      if (weBuzzUser.level != null)
+                        BasicInfoWidget(
                           iconData: FontAwesomeIcons.stairs,
-                          subtitle: controll.currentUser != null
-                              ? controll.currentUser!.level ?? ''
-                              : 'loading',
+                          subtitle: weBuzzUser.level!,
                           title: 'Level',
-                        );
-                      }),
+                        ),
                       const TitleSetting(title: 'Contact Information'),
                       const SizedBox(height: 15),
-                      GetBuilder<AppController>(builder: (controller) {
-                        return BasicInfoWidget(
-                          iconData: Icons.email,
-                          subtitle: controller.currentUser != null
-                              ? controller.currentUser!.email
-                              : 'loading...',
-                          title: 'Email',
-                        );
-                      }),
-                      GetBuilder<AppController>(builder: (controller) {
-                        return BasicInfoWidget(
-                          iconData: Icons.phone,
-                          subtitle: controller.currentUser != null
-                              ? controller.currentUser!.phone ?? 'not set'
-                              : 'loading',
-                          title: 'Phone No.',
-                        );
-                      }),
-                      GetBuilder<AppController>(builder: (controller) {
-                        return BasicInfoWidget(
-                          iconData:
-                              FluentSystemIcons.ic_fluent_calendar_date_filled,
-                          subtitle: controller.currentUser != null
-                              ? MethodUtils.formatDateWithMonthAndDay(
-                                  controller.currentUser!.createdAt)
-                              : 'loading..',
-                          title: 'Joined On',
-                        );
-                      }),
+                      BasicInfoWidget(
+                        iconData: Icons.email,
+                        subtitle: weBuzzUser.email,
+                        title: 'Email',
+                      ),
+                      BasicInfoWidget(
+                        iconData: Icons.phone,
+                        subtitle: weBuzzUser.phone ?? 'not set',
+                        title: 'Phone No.',
+                      ),
+                      BasicInfoWidget(
+                        iconData:
+                            FluentSystemIcons.ic_fluent_calendar_date_filled,
+                        subtitle: MethodUtils.formatDateWithMonthAndDay(
+                          // TODO get the month years and days
+                          weBuzzUser.createdAt,
+                        ),
+                        title: 'Joined On',
+                      ),
                     ],
                   ),
                 ),

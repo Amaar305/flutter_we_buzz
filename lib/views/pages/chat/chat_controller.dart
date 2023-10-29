@@ -4,14 +4,15 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:hi_tweet/model/message_enum_type.dart';
-import 'package:hi_tweet/services/current_user.dart';
 import 'package:nb_utils/nb_utils.dart';
 
 import '../../../model/message_model.dart';
 import '../../../model/user.dart';
 import '../../../services/firebase_constants.dart';
 import '../../../services/firebase_service.dart';
+import '../../../services/notification_services.dart';
 import '../../widgets/chat/fquser_widget.dart';
+import '../dashboard/dashboard_controller.dart';
 
 class ChatController extends GetxController {
   static ChatController instance = Get.find();
@@ -43,7 +44,6 @@ class ChatController extends GetxController {
   ];
   RxList<WeBuzzUser> weBuzzLists = RxList<WeBuzzUser>([]);
   RxList<Message> allMessage = RxList<Message>([]);
-  static final loggedInUserId = CurrentLoggeedInUser.currenLoggedIntUser!.uid;
 
   late TextEditingController messageEditingController;
 
@@ -75,16 +75,16 @@ class ChatController extends GetxController {
   Stream<List<WeBuzzUser>> _streamTweetBuzz() {
     return FirebaseService.firebaseFirestore
         .collection(firebaseWeBuzzUser)
-        .where('userId', isNotEqualTo: loggedInUserId)
+        .where('userId', isNotEqualTo: AppController.instance.auth.currentUser!.uid)
         .snapshots()
         .map((query) =>
             query.docs.map((user) => WeBuzzUser.fromDocument(user)).toList());
   }
 
   // For getting conversation id
-  String getConversationId(String id) => loggedInUserId.hashCode <= id.hashCode
-      ? '${loggedInUserId}_$id'
-      : '${id}_$loggedInUserId';
+  String getConversationId(String id) => AppController.instance.auth.currentUser!.uid.hashCode <= id.hashCode
+      ? '${AppController.instance.auth.currentUser!.uid}_$id'
+      : '${id}_${AppController.instance.auth.currentUser!.uid}';
 
 // for getting all messages for a specific conversation from firestore database
   Stream<List<Message>> streamAllMessages(WeBuzzUser user) {
@@ -110,13 +110,16 @@ class ChatController extends GetxController {
       message: message,
       read: '',
       type: messageType,
-      fromId: loggedInUserId,
+      fromId: AppController.instance.auth.currentUser!.uid,
       sent: time,
     );
     final ref = FirebaseService.firebaseFirestore.collection(
         'chats/${getConversationId(webuzzUser.userId)}/$firebaseMessages/');
 
-    await ref.doc(time).set(msg.toMap());
+    await ref.doc(time).set(msg.toMap()).then((value) {
+      NotificationServices.sendNotificationTokenForChat(
+          webuzzUser, message, messageType);
+    });
   }
 
 // update message read
@@ -172,8 +175,6 @@ class ChatController extends GetxController {
         .snapshots()
         .map((event) => WeBuzzUser.fromDocument(event.docs.first));
   }
-
-
 
   @override
   void onClose() {

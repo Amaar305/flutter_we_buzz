@@ -11,6 +11,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:nb_utils/nb_utils.dart';
 
 import '../../../model/user.dart';
+import '../view_profile/view_profile_page.dart';
 import 'chat_controller.dart';
 
 class ChatPage extends GetView<ChatController> {
@@ -130,6 +131,11 @@ class ChatPage extends GetView<ChatController> {
 
   Widget _appBar() {
     return InkWell(
+      onTap: () => Get.to(
+        () => ViewProfilePage(weBuzzUser: user),
+        transition: Transition.rightToLeftWithFade,
+        curve: Curves.easeIn,
+      ),
       child: StreamBuilder<WeBuzzUser>(
           stream: controller.getUserInfo(user),
           builder: (context, snapshot) {

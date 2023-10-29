@@ -4,28 +4,29 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class WeBuzzUser {
-  final String userId;
-  final String email;
-  final String name;
-  final bool isOnline;
-  final bool isStaff;
-  final bool isAdmin;
-  final bool notification;
-  final bool isCompleteness;
-  final bool isVerified;
-  final Timestamp createdAt;
-  final String lastActive;
+  late String userId;
+  late String email;
+  late String name;
+  late bool isOnline;
+  late bool isStaff;
+  late bool isAdmin;
+  late bool notification;
+  late bool isCompleteness;
+  late bool isVerified;
+  late Timestamp createdAt;
+  late String lastActive;
 
-  final String location;
-  final Timestamp? lastSeen;
-
-  final String pushToken;
-  final String bio;
-  final String? imageUrl;
-  final String? program;
-  final String? level;
-  final String? phone;
-  final Timestamp? lastUpdatedPassword;
+  late String location;
+  late Timestamp? lastSeen;
+  final List<String> followers;
+  final List<String> following;
+  late String pushToken;
+  late String bio;
+  late String? imageUrl;
+  late String? program;
+  late String? level;
+  late String? phone;
+  late Timestamp? lastUpdatedPassword;
   WeBuzzUser({
     required this.userId,
     required this.email,
@@ -39,6 +40,8 @@ class WeBuzzUser {
     required this.createdAt,
     required this.lastActive,
     required this.location,
+    required this.followers,
+    required this.following,
     this.lastSeen,
     required this.pushToken,
     this.bio = 'Hey, I\'m using We Buzz!',
@@ -48,52 +51,6 @@ class WeBuzzUser {
     this.phone,
     this.lastUpdatedPassword,
   });
-
-  WeBuzzUser copyWith({
-    String? userId,
-    String? email,
-    bool? isOnline,
-    bool? isStaff,
-    bool? isAdmin,
-    bool? notification,
-    bool? isCompleteness,
-    bool? isVerified,
-    Timestamp? lastSeen,
-    Timestamp? createdAt,
-    String? pushToken,
-    String? name,
-    String? bio,
-    String? imageUrl,
-    String? program,
-    String? level,
-    String? phone,
-    String? location,
-    Timestamp? lastUpdatedPassword,
-    String? lastActive,
-  }) {
-    return WeBuzzUser(
-      userId: userId ?? this.userId,
-      email: email ?? this.email,
-      isOnline: isOnline ?? this.isOnline,
-      isStaff: isStaff ?? this.isStaff,
-      isAdmin: isAdmin ?? this.isAdmin,
-      notification: notification ?? this.notification,
-      lastSeen: lastSeen ?? this.lastSeen,
-      createdAt: createdAt ?? this.createdAt,
-      pushToken: pushToken ?? this.pushToken,
-      name: name ?? this.name,
-      bio: bio ?? this.bio,
-      imageUrl: imageUrl ?? this.imageUrl,
-      program: program ?? this.program,
-      level: level ?? this.level,
-      lastUpdatedPassword: lastUpdatedPassword ?? this.lastUpdatedPassword,
-      lastActive: lastActive ?? this.lastActive,
-      phone: phone ?? this.phone,
-      location: location ?? this.location,
-      isCompleteness: isCompleteness ?? this.isCompleteness,
-      isVerified: isVerified ?? this.isVerified,
-    );
-  }
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
@@ -117,6 +74,8 @@ class WeBuzzUser {
       'isVerified': isVerified,
       'location': location,
       'lastActive': lastActive,
+      "followers": followers,
+      "following": following,
     };
   }
 
@@ -126,6 +85,12 @@ class WeBuzzUser {
   }
 
   factory WeBuzzUser.fromMap(Map<String, dynamic> map) {
+    List<String> followers = (map['followers'] as List)
+        .map((hashtag) => hashtag.toString())
+        .toList();
+    List<String> following = (map['following'] as List)
+        .map((hashtag) => hashtag.toString())
+        .toList();
     return WeBuzzUser(
       userId: map['userId'] as String,
       email: map['email'] as String,
@@ -147,6 +112,8 @@ class WeBuzzUser {
       location: map['location'] as String,
       isCompleteness: map['isCompleteness'] as bool,
       isVerified: map['isVerified'] as bool,
+      followers: followers,
+      following: following,
     );
   }
 

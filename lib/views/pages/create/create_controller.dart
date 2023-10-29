@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,7 +9,6 @@ import 'package:nb_utils/nb_utils.dart';
 
 import '../../../model/buzz_enum.dart';
 import '../../../model/webuzz_model.dart';
-import '../../../services/current_user.dart';
 import '../../../services/firebase_service.dart';
 import '../../../services/location_services.dart';
 import '../../utils/custom_full_screen_dialog.dart';
@@ -57,8 +57,8 @@ class CreateTweetController extends GetxController {
     CustomFullScreenDialog.showDialog();
 
     // Getting user info
-    if (CurrentLoggeedInUser.currenLoggedIntUser != null) {
-      final loggedInUser = CurrentLoggeedInUser.currenLoggedIntUser;
+    if (FirebaseAuth.instance.currentUser != null) {
+      final loggedInUser = FirebaseAuth.instance.currentUser;
 
       try {
         final image = await picker!
@@ -96,7 +96,7 @@ class CreateTweetController extends GetxController {
   void createTweet() async {
     CustomFullScreenDialog.showDialog();
     // Getting user info
-    final loggedInUser = CurrentLoggeedInUser.currenLoggedIntUser;
+    final loggedInUser = FirebaseAuth.instance.currentUser;
     String location = await getCurrentCity();
 
     if (textEditingController!.text.isNotEmpty && loggedInUser != null) {
