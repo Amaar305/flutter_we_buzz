@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class CustomSnackBar {
-  static void showSnackBAr({
+  static void showSnackBar({
     required BuildContext? context,
     required String title,
     required String message,
@@ -69,4 +69,19 @@ class CustomSnackBar {
   //   );
 
   // }
+
+  static void showSnackbar(String msg) {
+    ScaffoldMessenger.of(Get.context!).showSnackBar(SnackBar(
+        content: Text(msg),
+        // backgroundColor: Colors.blue.withOpacity(.8),
+        backgroundColor:
+            Theme.of(Get.context!).colorScheme.primary.withOpacity(.8),
+        behavior: SnackBarBehavior.floating));
+  }
+
+  static void showProgressBar(BuildContext context) {
+    showDialog(
+        context: context,
+        builder: (_) => const Center(child: CircularProgressIndicator()));
+  }
 }

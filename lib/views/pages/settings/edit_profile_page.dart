@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 import '../../utils/constants.dart';
 import '../../widgets/home/my_button.dart';
 import '../../widgets/home/my_textfield.dart';
-import '../dashboard/dashboard_controller.dart';
+import '../dashboard/my_app_controller.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});

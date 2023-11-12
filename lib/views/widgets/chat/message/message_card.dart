@@ -1,25 +1,33 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:full_screen_image/full_screen_image.dart';
 import 'package:get/get.dart';
-import 'package:hi_tweet/model/message_enum_type.dart';
-import 'package:hi_tweet/model/user.dart';
-import 'package:hi_tweet/views/pages/chat/chat_controller.dart';
-import 'package:hi_tweet/views/pages/dashboard/dashboard_controller.dart';
-import 'package:hi_tweet/views/utils/method_utils.dart';
 
-import '../../../../model/message_model.dart';
+import '../../../../model/chat_message.dart';
+import '../../../../model/message_enum_type.dart';
+import '../../../../model/we_buzz_user_model.dart';
+import '../../../utils/constants.dart';
+import '../../../utils/custom_snackbar.dart';
+import '../../../utils/method_utils.dart';
+import '../../../utils/my_date_utils.dart';
+import '../../bottom_sheet_option.dart';
 
-class MessageCard extends StatelessWidget {
-  const MessageCard({super.key, required this.message, required this.user});
-  final Message message;
+class MessagesCard extends StatelessWidget {
+  const MessagesCard({super.key, required this.message, required this.user});
+  final ChatMessage message;
   final WeBuzzUser user;
 
   @override
   Widget build(BuildContext context) {
-    return AppController.instance.auth.currentUser!.uid == message.fromId
-        ? _yelloMessage()
-        : _whiteMessage();
+    // check if is my message by comparing my userId with the reciever's id
+    bool isMe = FirebaseAuth.instance.currentUser!.uid == message.senderID;
+
+    return InkWell(
+      child: isMe ? _yelloMessage() : _whiteMessage(),
+      onLongPress: () => _showBottomSheet(isMe),
+    );
   }
 
   // our message
@@ -51,7 +59,7 @@ class MessageCard extends StatelessWidget {
             ),
             child: message.type == MessageType.text
                 ? Text(
-                    message.message,
+                    message.content,
                     style: const TextStyle(fontSize: 15, color: Colors.black87),
                   )
                 : FullScreenWidget(
@@ -59,7 +67,7 @@ class MessageCard extends StatelessWidget {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(15),
                       child: CachedNetworkImage(
-                        imageUrl: message.message,
+                        imageUrl: message.content,
                         placeholder: (context, url) => const Padding(
                           padding: EdgeInsets.all(8.0),
                           child: CircularProgressIndicator(strokeWidth: 1.5),
@@ -84,7 +92,8 @@ class MessageCard extends StatelessWidget {
               children: [
                 // time sent
                 Text(
-                  MethodUtils.getFormattedDate(time: message.sent),
+                  MethodUtils.getFormattedDate(
+                      time: message.sentTime.millisecondsSinceEpoch.toString()),
                   style: const TextStyle(fontSize: 13),
                 ),
 
@@ -121,9 +130,10 @@ class MessageCard extends StatelessWidget {
   // sender or another user message
   Widget _whiteMessage() {
     // update last read message if sender and the reciever are diffent
-    if (message.read.isEmpty) {
-      ChatController().updateMessageReadStatus(message);
-    }
+    // TODO implement read message
+    // if (message.read.isEmpty) {
+    //   ChatControllerOld.instance.updateMessageReadStatus(message);
+    // }
     Size size = MediaQuery.of(Get.context!).size;
     return Padding(
       padding: EdgeInsets.only(right: size.width * .08),
@@ -151,7 +161,7 @@ class MessageCard extends StatelessWidget {
             ),
             child: message.type == MessageType.text
                 ? Text(
-                    message.message,
+                    message.content,
                     style: const TextStyle(fontSize: 15, color: Colors.black87),
                   )
                 : FullScreenWidget(
@@ -159,7 +169,7 @@ class MessageCard extends StatelessWidget {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(15),
                       child: CachedNetworkImage(
-                        imageUrl: message.message,
+                        imageUrl: message.content,
                         placeholder: (context, url) => const Padding(
                           padding: EdgeInsets.all(8.0),
                           child: CircularProgressIndicator(strokeWidth: 1.5),
@@ -182,7 +192,8 @@ class MessageCard extends StatelessWidget {
               children: [
                 // time sent
                 Text(
-                  MethodUtils.getFormattedDate(time: message.sent),
+                  MethodUtils.getFormattedDate(
+                      time: message.sentTime.millisecondsSinceEpoch.toString()),
                   style: const TextStyle(fontSize: 13),
                 ),
               ],
@@ -192,5 +203,224 @@ class MessageCard extends StatelessWidget {
       ),
     );
   }
+
+// Bottom sheet for modifyinng message details
+  void _showBottomSheet(bool isMe) {
+    Size size = MediaQuery.of(Get.context!).size;
+
+    showModalBottomSheet(
+      context: Get.context!,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      builder: (context) {
+        return ListView(
+          shrinkWrap: true,
+          children: [
+            // black divider
+            Container(
+              height: 4,
+              margin: EdgeInsets.symmetric(
+                vertical: size.height * .015,
+                horizontal: size.width * .4,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.grey,
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+
+            if (message.type == MessageType.text)
+              // copy option
+              OptionItem(
+                icon: Icon(
+                  Icons.copy_all_rounded,
+                  color: Theme.of(Get.context!).colorScheme.primary,
+                  size: 26,
+                ),
+                name: 'Copy Text',
+                onTap: () async {
+                  await Clipboard.setData(ClipboardData(text: message.content))
+                      .then(
+                    (value) {
+                      Get.back();
+                      CustomSnackBar.showSnackbar('Message Copied');
+                    },
+                  );
+                },
+              )
+            else
+              // save option
+              OptionItem(
+                icon: Icon(
+                  Icons.downloading,
+                  color: Theme.of(Get.context!).colorScheme.primary,
+                  size: 26,
+                ),
+                name: 'Save Image',
+                onTap: () async {
+                  // try {
+                  //   log(message.msg);
+                  //   await GallerySaver.saveImage(widget.message.msg,
+                  //           albumName: "Campus Connect")
+                  //       .then((success) {
+                  //     Navigator.pop(context);
+
+                  //     // if (success != null && success) {
+                  //     //   Dialogs.showSnackbar(
+                  //     //       context, "Image Successifully Saved");
+                  //     // }
+                  //   });
+                  // } catch (e) {
+                  //   log("Error While Saving Image $e");
+                  // }
+                },
+              ),
+
+            // sepeartor or divider
+            if (isMe)
+              Divider(
+                endIndent: size.width * .04,
+                indent: size.width * .04,
+              ),
+
+            // edit option
+            if (message.type == MessageType.text && isMe)
+              OptionItem(
+                icon: Icon(
+                  Icons.edit,
+                  color: Theme.of(Get.context!).colorScheme.primary,
+                  size: 26,
+                ),
+                name: 'Edit Message',
+                onTap: () {
+                  // for hiding bottomSheet
+                  Get.back();
+
+                  _showMessgaUpdateDialog();
+                },
+              ),
+
+            // delete option
+            if (isMe)
+              OptionItem(
+                icon: const Icon(
+                  Icons.delete_forever,
+                  color: Colors.red,
+                  size: 26,
+                ),
+                name: 'Delete Message',
+                onTap: () async {
+                  // TODO implement dele message
+                  // await ChatPageController.instance
+                  //     .deleteChat()
+                  //     .then((value) {
+                  //   // for hiding bottomSheet
+                  //   Get.back();
+                  // });
+                },
+              ),
+
+            // sepeartor or divider
+            Divider(
+              endIndent: size.width * .04,
+              indent: size.width * .04,
+            ),
+
+            // sent time
+            OptionItem(
+              icon: Icon(
+                Icons.remove_red_eye,
+                color: Theme.of(Get.context!).colorScheme.primary,
+              ),
+              name: 'Sent At ${MyDateUtil.getMessageTime(
+                time: message.sentTime.millisecondsSinceEpoch.toString(),
+              )}',
+              onTap: () {},
+            ),
+
+            // recieve time
+            OptionItem(
+              icon: const Icon(
+                Icons.remove_red_eye,
+                color: Colors.deepOrange,
+              ),
+              name: message.read.isEmpty
+                  ? 'Read At: Not seen yet!'
+                  : 'Read At ${MyDateUtil.getMessageTime(time: message.read)}',
+              onTap: () {},
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showMessgaUpdateDialog() {
+    String updatedMsg = message.content;
+
+    Get.dialog(
+      WillPopScope(
+        child: AlertDialog(
+          contentPadding:
+              const EdgeInsets.only(left: 24, right: 24, top: 20, bottom: 10),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Icon(
+                Icons.message,
+                color: Theme.of(Get.context!).colorScheme.primary,
+              ),
+              const Text('Update Message'),
+            ],
+          ),
+          content: TextFormField(
+            initialValue: updatedMsg,
+            maxLines: null,
+            onChanged: (value) => updatedMsg = value,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+            ),
+          ),
+          actions: [
+            MaterialButton(
+              onPressed: () {
+                Get.back();
+              },
+              child: Text(
+                'Cancle',
+                style: TextStyle(
+                    fontSize: 16,
+                    color: Theme.of(Get.context!).colorScheme.primary),
+              ),
+            ),
+            MaterialButton(
+              onPressed: () async {
+                // TODO IMPLEMENT UPDATE MESSAGE
+                // Get.back();
+                // await ChatControllerOld.instance
+                //     .updateMessage(message, updatedMsg);
+              },
+              child: Text(
+                'Send',
+                style: TextStyle(
+                    fontSize: 16,
+                    color: Theme.of(Get.context!).colorScheme.primary),
+              ),
+            ),
+          ],
+        ),
+        onWillPop: () => Future.value(false),
+      ),
+      barrierDismissible: false,
+      barrierColor: kPrimary.withOpacity(0.03),
+      useSafeArea: true,
+    );
+  }
 }
-// 'I know, right? She\'s grown so much as a leader and singer!'

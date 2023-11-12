@@ -6,7 +6,6 @@ import '../utils/constants.dart';
 class AppThemes {
   static final _appBarTheme = AppBarTheme(
     elevation: 0,
-    centerTitle: true,
     backgroundColor: Colors.transparent,
     shadowColor: Colors.transparent,
     titleTextStyle: GoogleFonts.lato(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../pages/dashboard/dashboard_controller.dart';
+import '../pages/dashboard/my_app_controller.dart';
 import '../utils/constants.dart';
 import '../widgets/home/my_button.dart';
 import '../widgets/home/my_textfield.dart';
@@ -47,7 +47,7 @@ class _LoginPageState extends State<LoginPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text(
-                      'Log in to Hi, Tweet',
+                      'Log in to Webuzz',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -89,7 +89,7 @@ class _LoginPageState extends State<LoginPage> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         TextButton(
-                          onPressed: () =>Get.offAllNamed('/'),
+                          onPressed: () {},
                           child: const Text('Forgot password'),
                         ),
                       ],

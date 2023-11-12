@@ -10,7 +10,7 @@ import 'package:get_storage/get_storage.dart';
 
 import 'app.dart';
 import 'firebase_options.dart';
-import 'views/pages/dashboard/dashboard_controller.dart';
+import 'views/pages/dashboard/my_app_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

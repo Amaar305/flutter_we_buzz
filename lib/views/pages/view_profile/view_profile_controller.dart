@@ -1,14 +1,13 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hi_tweet/model/user.dart';
+import 'package:hi_tweet/model/we_buzz_user_model.dart';
 import 'package:hi_tweet/views/utils/custom_snackbar.dart';
 
 import 'package:hi_tweet/views/utils/custom_full_screen_dialog.dart';
 
 import '../../../services/notification_services.dart';
-import '../dashboard/dashboard_controller.dart';
+import '../dashboard/my_app_controller.dart';
 
 class ViewProfileController extends GetxController {
   static final ViewProfileController viewProfileController = Get.find();
@@ -16,8 +15,8 @@ class ViewProfileController extends GetxController {
   var currentUserID = AppController.instance.auth.currentUser!.uid;
 
   // Rx<WeBuzzUser> currentWeBuxxUser =  WeBuzzUser().obs;
-  
- final currentWeBuxxUser = Rx(AppController.instance.currentUser);
+
+  final currentWeBuxxUser = Rx(AppController.instance.currentUser);
 
   Stream<WeBuzzUser> _streamCurrentWeBuxxUser() {
     return FirebaseFirestore.instance
@@ -57,7 +56,7 @@ class ViewProfileController extends GetxController {
       CustomFullScreenDialog.cancleDialog();
     } catch (e) {
       CustomFullScreenDialog.cancleDialog();
-      CustomSnackBar.showSnackBAr(
+      CustomSnackBar.showSnackBar(
         context: Get.context,
         title: "About user",
         message: "Something went wrong, try again later!",
@@ -88,7 +87,7 @@ class ViewProfileController extends GetxController {
       CustomFullScreenDialog.cancleDialog();
     } catch (e) {
       CustomFullScreenDialog.cancleDialog();
-      CustomSnackBar.showSnackBAr(
+      CustomSnackBar.showSnackBar(
         context: Get.context,
         title: "About user",
         message: "Something went wrong, try again later!",

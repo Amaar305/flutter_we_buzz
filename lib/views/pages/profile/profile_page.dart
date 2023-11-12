@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:full_screen_image/full_screen_image.dart';
 import 'package:get/get.dart';
-import 'package:hi_tweet/views/pages/dashboard/dashboard_controller.dart';
+import 'package:hi_tweet/views/pages/dashboard/my_app_controller.dart';
 import 'package:hi_tweet/views/utils/constants.dart';
 import 'package:hi_tweet/views/widgets/home/reusable_card.dart';
 
@@ -23,13 +23,14 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
-    final buzzController = HomeController.homeController;
+    final buzzController = HomeController.instance;
     return Scaffold(
       body: DefaultTabController(
-        length: 2,
+        length: 3,
         child: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) {
             return <Widget>[
+              // Appbar
               SliverAppBar(
                 expandedHeight: size.height * 0.44,
                 floating: false,
@@ -52,7 +53,6 @@ class ProfilePage extends StatelessWidget {
                     style: Theme.of(context).appBarTheme.titleTextStyle,
                   ),
                 ),
-                centerTitle: false,
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
                     color: context.scaffoldBackgroundColor,
@@ -167,20 +167,61 @@ class ProfilePage extends StatelessWidget {
                   ),
                 ),
               ),
+
+              //  Tabs
               SliverPersistentHeader(
                 delegate: SliverAppBarDelegate(
-                  const TabBar(
+                  TabBar(
+                    indicatorColor: Colors.black54,
+                    labelColor: Colors.black,
                     tabs: [
                       Tab(
-                        text: 'Tweet',
-                        icon: Icon(
-                          FluentSystemIcons.ic_fluent_drafts_regular,
+                        child: GetX<HomeController>(
+                          builder: (_) {
+                            return Text(
+                              'Buzz (${MethodUtils.formatNumber(
+                                buzzController.weeBuzzItems
+                                    .where((buzz) =>
+                                        buzz.authorId ==
+                                            FirebaseAuth
+                                                .instance.currentUser!.uid &&
+                                        buzz.isPublished)
+                                    .length,
+                              )})',
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            );
+                          },
                         ),
                       ),
                       Tab(
-                        text: 'About',
-                        icon: Icon(
-                          FluentSystemIcons.ic_fluent_person_accounts_regular,
+                        child: GetX<HomeController>(builder: (_) {
+                          return Text(
+                            'Draft (${MethodUtils.formatNumber(
+                              buzzController.weeBuzzItems
+                                  .where((buzz) =>
+                                      buzz.authorId ==
+                                          FirebaseAuth
+                                              .instance.currentUser!.uid &&
+                                      !buzz.isPublished)
+                                  .length,
+                            )})',
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
+                        }),
+                      ),
+                      const Tab(
+                        child: Text(
+                          'About',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -193,12 +234,54 @@ class ProfilePage extends StatelessWidget {
           body: TabBarView(
             children: [
               Padding(
-                padding: const EdgeInsets.only(top: 15),
+                padding: EdgeInsets.only(
+                  top: 15,
+                  left: MediaQuery.of(context).size.width * 0.03,
+                  right: MediaQuery.of(context).size.width * 0.03,
+                ),
+                child: Obx(
+                  () {
+                    final myPost = buzzController.weeBuzzItems
+                        .where(
+                          (buzz) =>
+                              buzz.authorId ==
+                                  FirebaseAuth.instance.currentUser!.uid &&
+                              buzz.isPublished,
+                        )
+                        .toList();
+                    return myPost.isNotEmpty
+                        ? ListView.builder(
+                            scrollDirection: Axis.vertical,
+                            itemCount: myPost.length,
+                            physics: const NeverScrollableScrollPhysics(),
+                            shrinkWrap: true,
+                            itemBuilder: (context, index) {
+                              return ReusableCard(
+                                normalWebuzz: myPost[index],
+                              );
+                            },
+                          )
+                        : const Center(
+                            child: Text(
+                              'No Buzz Yet!',
+                              style: TextStyle(fontSize: 20),
+                            ),
+                          );
+                  },
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.only(
+                  top: 15,
+                  left: MediaQuery.of(context).size.width * 0.03,
+                  right: MediaQuery.of(context).size.width * 0.03,
+                ),
                 child: Obx(() {
-                  final myPost = buzzController.tweetBuzz
+                  final myPost = buzzController.weeBuzzItems
                       .where((buzz) =>
                           buzz.authorId ==
-                          FirebaseAuth.instance.currentUser!.uid)
+                              FirebaseAuth.instance.currentUser!.uid &&
+                          !buzz.isPublished)
                       .toList();
                   return myPost.isNotEmpty
                       ? ListView.builder(
@@ -207,7 +290,9 @@ class ProfilePage extends StatelessWidget {
                           physics: const NeverScrollableScrollPhysics(),
                           shrinkWrap: true,
                           itemBuilder: (context, index) {
-                            return ReusableCard(tweet: myPost[index]);
+                            return ReusableCard(
+                              normalWebuzz: myPost[index],
+                            );
                           },
                         )
                       : const Center(

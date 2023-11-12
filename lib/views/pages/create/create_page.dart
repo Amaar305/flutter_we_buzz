@@ -5,10 +5,10 @@ import 'package:hi_tweet/views/utils/constants.dart';
 import '../../widgets/create/my_iconbutton.dart';
 import 'create_controller.dart';
 
-class CreateTweetPage extends GetView<CreateTweetController> {
+class CreateTweetPage extends GetView<CreateBuzzController> {
   const CreateTweetPage({super.key});
 
-  static const routeName = '/create-tweet';
+  static const routeName = '/create-buzz';
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +51,7 @@ class CreateTweetPage extends GetView<CreateTweetController> {
                       maxLines: 2,
                     ),
                     const SizedBox(height: 12),
-                    GetBuilder<CreateTweetController>(
+                    GetBuilder<CreateBuzzController>(
                       builder: (_) {
                         if (controller.pickedImagePath != null) {
                           return AnimatedContainer(

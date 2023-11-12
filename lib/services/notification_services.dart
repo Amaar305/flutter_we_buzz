@@ -5,8 +5,8 @@ import 'package:http/http.dart';
 import 'package:nb_utils/nb_utils.dart';
 
 import '../model/message_enum_type.dart';
-import '../model/user.dart';
-import '../views/pages/dashboard/dashboard_controller.dart';
+import '../model/we_buzz_user_model.dart';
+import '../views/pages/dashboard/my_app_controller.dart';
 import 'firebase_constants.dart';
 
 class NotificationServices {
@@ -58,7 +58,7 @@ class NotificationServices {
       var res = await post(Uri.parse('https://fcm.googleapis.com/fcm/send'),
           headers: {
             HttpHeaders.contentTypeHeader: 'application/json',
-            HttpHeaders.authorizationHeader: "key=$firebaseMessagingApi",
+            HttpHeaders.authorizationHeader: "key=$firebaseMessagingApiKey",
           },
           body: jsonEncode(body));
 
@@ -88,7 +88,7 @@ class NotificationServices {
       var res = await post(Uri.parse('https://fcm.googleapis.com/fcm/send'),
           headers: {
             HttpHeaders.contentTypeHeader: 'application/json',
-            HttpHeaders.authorizationHeader: "key=$firebaseMessagingApi",
+            HttpHeaders.authorizationHeader: "key=$firebaseMessagingApiKey",
           },
           body: jsonEncode(body));
 

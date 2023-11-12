@@ -35,7 +35,7 @@ class SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
       margin: const EdgeInsets.only(left: 16, right: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+        color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
       ),
       child: tabBar,
     );

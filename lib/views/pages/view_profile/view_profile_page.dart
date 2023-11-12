@@ -1,11 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fluentui_icons/fluentui_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:full_screen_image/full_screen_image.dart';
 import 'package:get/get.dart';
-import 'package:hi_tweet/model/user.dart';
-import 'package:hi_tweet/views/pages/dashboard/dashboard_controller.dart';
+import 'package:hi_tweet/model/we_buzz_user_model.dart';
+import 'package:hi_tweet/views/pages/dashboard/my_app_controller.dart';
 import 'package:hi_tweet/views/utils/constants.dart';
 import 'package:hi_tweet/views/widgets/home/reusable_card.dart';
 
@@ -28,39 +29,66 @@ class ViewProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
-    final buzzController = HomeController.homeController;
+    final buzzController = HomeController.instance;
     return Scaffold(
-      floatingActionButton: Obx(() {
-        return TextButton.icon(
-          style: TextButton.styleFrom(
-            backgroundColor: kPrimary.withOpacity(0.8),
-          ),
-          label: Text(
-            viewProfileController.currentWeBuxxUser.value!.following
-                    .contains(weBuzzUser.userId)
-                ? 'UnFollow'
-                : 'Follow',
-            style: Theme.of(context)
-                .textTheme
-                .bodyLarge!
-                .copyWith(color: Colors.black),
-          ),
-          icon: const Icon(
-            Icons.add,
-            size: 30,
-            color: Colors.black,
-          ),
-          onPressed: () {
-            if (viewProfileController.currentWeBuxxUser.value!.following
-                .contains(weBuzzUser.userId)) {
-              viewProfileController.unfollowUser(weBuzzUser.userId);
-            } else {
-              viewProfileController.followUser(weBuzzUser);
-            }
-            // viewProfileController.followUser(weBuzzUser);
-          },
-        );
-      }),
+      floatingActionButton: weBuzzUser.userId !=
+              FirebaseAuth.instance.currentUser!.uid
+          ? Obx(
+              () {
+                return TextButton.icon(
+                  style: TextButton.styleFrom(
+                    backgroundColor: kPrimary.withOpacity(0.8),
+                  ),
+                  label: Text(
+                    // viewProfileController.currentWeBuxxUser.value!.following
+                    //         .contains(weBuzzUser.userId)
+                    //     ? 'UnFollow'
+                    //     : 'Follow',
+                    viewProfileController.currentWeBuxxUser.value!.followers
+                                .contains(weBuzzUser.userId) &&
+                            viewProfileController
+                                .currentWeBuxxUser.value!.following
+                                .contains(weBuzzUser.userId)
+                        ? 'Friends'
+                        : viewProfileController
+                                .currentWeBuxxUser.value!.following
+                                .contains(weBuzzUser.userId)
+                            ? 'UnFollow'
+                            : 'Follow'
+                                '',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyLarge!
+                        .copyWith(color: Colors.black),
+                  ),
+                  icon: Icon(
+                    viewProfileController.currentWeBuxxUser.value!.followers
+                                .contains(weBuzzUser.userId) &&
+                            viewProfileController
+                                .currentWeBuxxUser.value!.following
+                                .contains(weBuzzUser.userId)
+                        ? Icons.person
+                        : viewProfileController
+                                .currentWeBuxxUser.value!.following
+                                .contains(weBuzzUser.userId)
+                            ? Icons.person_off_outlined
+                            : Icons.person_add_alt_1_outlined,
+                    size: 30,
+                    color: Colors.black,
+                  ),
+                  onPressed: () {
+                    if (viewProfileController.currentWeBuxxUser.value!.following
+                        .contains(weBuzzUser.userId)) {
+                      viewProfileController.unfollowUser(weBuzzUser.userId);
+                    } else {
+                      viewProfileController.followUser(weBuzzUser);
+                    }
+                    // viewProfileController.followUser(weBuzzUser);
+                  },
+                );
+              },
+            )
+          : null,
       body: DefaultTabController(
         length: 2,
         child: NestedScrollView(
@@ -183,18 +211,33 @@ class ViewProfilePage extends StatelessWidget {
               ),
               SliverPersistentHeader(
                 delegate: SliverAppBarDelegate(
-                  const TabBar(
+                  TabBar(
+                    indicatorColor: Colors.black54,
+                    labelColor: Colors.black,
                     tabs: [
                       Tab(
-                        text: 'Buzz',
-                        icon: Icon(
-                          FluentSystemIcons.ic_fluent_drafts_regular,
+                        child: Text(
+                          'Buzz (${MethodUtils.formatNumber(
+                            buzzController.weeBuzzItems
+                                .where(
+                                  (buzz) =>
+                                      buzz.authorId.contains(weBuzzUser.userId),
+                                )
+                                .length,
+                          )})',
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                      Tab(
-                        text: 'About',
-                        icon: Icon(
-                          FluentSystemIcons.ic_fluent_person_accounts_regular,
+                      const Tab(
+                        child: Text(
+                          'About',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -207,10 +250,14 @@ class ViewProfilePage extends StatelessWidget {
           body: TabBarView(
             children: [
               Padding(
-                padding: const EdgeInsets.only(top: 15),
+                padding: EdgeInsets.only(
+                  top: 15,
+                  left: MediaQuery.of(context).size.width * 0.03,
+                  right: MediaQuery.of(context).size.width * 0.03,
+                ),
                 child: Obx(() {
                   // Filter and return the user's tweet
-                  final myPost = buzzController.tweetBuzz
+                  final myPost = buzzController.weeBuzzItems
                       .where(
                         (buzz) => buzz.authorId == weBuzzUser.userId,
                       )
@@ -222,7 +269,9 @@ class ViewProfilePage extends StatelessWidget {
                           physics: const NeverScrollableScrollPhysics(),
                           shrinkWrap: true,
                           itemBuilder: (context, index) {
-                            return ReusableCard(tweet: myPost[index]);
+                            return ReusableCard(
+                              normalWebuzz: myPost[index],
+                            );
                           },
                         )
                       : const Center(

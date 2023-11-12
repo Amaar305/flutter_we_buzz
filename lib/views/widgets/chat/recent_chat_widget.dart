@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hi_tweet/model/message_enum_type.dart';
 import 'package:hi_tweet/model/message_model.dart';
-import 'package:hi_tweet/model/user.dart';
-import 'package:hi_tweet/views/pages/chat/chat_controller.dart';
+import 'package:hi_tweet/model/we_buzz_user_model.dart';
 import 'package:hi_tweet/views/utils/constants.dart';
 
+import '../../pages/chat/chat_controller_old.dart';
 import '../../utils/method_utils.dart';
 import 'profile_dialog.dart';
 
@@ -25,7 +25,7 @@ class RecentChats extends StatelessWidget {
     final Size size = MediaQuery.of(context).size;
     Message? message;
     return StreamBuilder(
-      stream: ChatController.instance.getLastMessage(weBuzzUser),
+      stream: ChatControllerOld.instance.getLastMessage(weBuzzUser),
       builder: (context, snapshot) {
         if (snapshot.data != null) {
           message = snapshot.data;
@@ -75,7 +75,7 @@ class RecentChats extends StatelessWidget {
             ],
           ),
           title: Text(
-            weBuzzUser.name,
+            weBuzzUser.username,
             style: Theme.of(context).textTheme.displayMedium!.copyWith(
                   fontSize: 17,
                   fontWeight: FontWeight.bold,

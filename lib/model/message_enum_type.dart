@@ -3,4 +3,5 @@ enum MessageType {
   image,
   video,
   audio,
+  unknown,
 }

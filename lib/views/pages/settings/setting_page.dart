@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:nb_utils/nb_utils.dart';
 
-import '../dashboard/dashboard_controller.dart';
+import '../../widgets/setting/setting_options_widget.dart';
+import '../dashboard/my_app_controller.dart';
 import 'edit_profile_page.dart';
+import 'privacy_page.dart';
+import 'save_buzz_page.dart';
 import 'settings_controller.dart';
 
 class SettingPage extends GetView<SettingsController> {
@@ -52,8 +55,7 @@ class SettingPage extends GetView<SettingsController> {
                           MySettingOption1(
                             iconData: Icons.email,
                             subtitle:
-                                FirebaseAuth.instance.currentUser!.email ??
-                                '',
+                                FirebaseAuth.instance.currentUser!.email ?? '',
                             title: 'Email',
                           ),
                           const MySettingOption1(
@@ -89,20 +91,35 @@ class SettingPage extends GetView<SettingsController> {
                               );
                             },
                           ),
-                          GetBuilder<AppController>(builder: (controll) {
-                            return MySettingOption2(
-                              iconData: Icons.notifications_active,
-                              title: 'Notification',
-                              trailing: Switch(
-                                value: controll.currentUser != null
-                                    ? controll.currentUser!.notification
-                                    : true,
-                                onChanged: (value) {
-                                  controll.updateNotification();
-                                },
+                          GetBuilder<AppController>(
+                            builder: (controll) {
+                              return MySettingOption2(
+                                iconData: Icons.notifications_active,
+                                title: 'Notification',
+                                trailing: Switch(
+                                  value: controll.currentUser != null
+                                      ? controll.currentUser!.notification
+                                      : true,
+                                  onChanged: (value) {
+                                    controll.updateNotification();
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                          MySettingOption2(
+                            iconData: Icons.bookmark,
+                            title: 'Saved Buzzes',
+                            trailing: IconButton(
+                              onPressed: () =>
+                                  Get.toNamed(SaveBuzzPage.routeName),
+                              icon: Icon(
+                                Icons.keyboard_arrow_right,
+                                color: Colors.grey.shade300,
                               ),
-                            );
-                          }),
+                            ),
+                            onTap: () => Get.toNamed(SaveBuzzPage.routeName),
+                          )
                         ],
                       ),
                     ),
@@ -124,6 +141,9 @@ class SettingPage extends GetView<SettingsController> {
                             ),
                           ),
                           MySettingOption2(
+                            onTap: () {
+                              Get.toNamed(PrivacyPage.routeName);
+                            },
                             iconData: Icons.security,
                             title: 'Privacy & Terms',
                             trailing: Icon(
@@ -163,105 +183,6 @@ class SettingPage extends GetView<SettingsController> {
               ),
             ),
           )
-        ],
-      ),
-    );
-  }
-}
-
-class MySettingOption1 extends StatelessWidget {
-  const MySettingOption1({
-    super.key,
-    required this.iconData,
-    required this.title,
-    required this.subtitle,
-    this.trailing,
-  });
-
-  final IconData iconData;
-  final String title;
-  final String subtitle;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.only(bottom: 35),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 23,
-                backgroundColor:
-                    Theme.of(context).colorScheme.primary.withOpacity(0.5),
-                child: Icon(iconData),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                        fontSize: 17, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: Colors.grey.shade400,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          if (trailing != null) trailing!
-        ],
-      ),
-    );
-  }
-}
-
-class MySettingOption2 extends StatelessWidget {
-  const MySettingOption2({
-    super.key,
-    required this.iconData,
-    required this.trailing,
-    required this.title,
-  });
-
-  final IconData iconData;
-  final String title;
-  final Widget trailing;
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 23,
-                backgroundColor:
-                    Theme.of(context).colorScheme.primary.withOpacity(0.5),
-                child: Icon(iconData),
-              ),
-              const SizedBox(width: 16),
-              Text(
-                title,
-                style:
-                    const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          trailing
         ],
       ),
     );

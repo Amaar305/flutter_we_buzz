@@ -2,26 +2,54 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hi_tweet/model/message_enum_type.dart';
-import 'package:hi_tweet/views/utils/method_utils.dart';
-import 'package:hi_tweet/views/widgets/chat/message/message_card.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nb_utils/nb_utils.dart';
 
-import '../../../model/user.dart';
+import '../../../model/chat_message.dart';
+import '../../../model/chat_model.dart';
+import '../../../model/message_enum_type.dart';
+import '../../../model/we_buzz_user_model.dart';
+import '../../utils/constants.dart';
+import '../../utils/my_date_utils.dart';
+import '../../widgets/chat/message/message_card.dart';
 import '../view_profile/view_profile_page.dart';
-import 'chat_controller.dart';
+import 'add_users_page/add_users_page.dart';
+import 'chat_page_controller.dart';
 
-class ChatPage extends GetView<ChatController> {
-  ChatPage({super.key, required this.user});
+class ChatPage extends StatefulWidget {
+  final ChatConversation chat;
+  const ChatPage({super.key, required this.chat});
 
-  final WeBuzzUser user;
+  @override
+  State<ChatPage> createState() => _ChatPageState();
+}
 
-  final Size size = MediaQuery.of(Get.context!).size;
+class _ChatPageState extends State<ChatPage> {
+  late Size size;
+
+  final controller = ChatPageController.instance;
+  late WeBuzzUser currentChatUser;
+
+  List<ChatMessage> _messages = [];
+
+  @override
+  void initState() {
+    super.initState();
+    currentChatUser = widget.chat.members.firstWhere(
+      (user) => user.userId != FirebaseAuth.instance.currentUser!.uid,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    size = MediaQuery.of(context).size;
+    return _buildUI();
+  }
+
+  Widget _buildUI() {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: SafeArea(
@@ -40,48 +68,19 @@ class ChatPage extends GetView<ChatController> {
             appBar: AppBar(
               automaticallyImplyLeading: false,
               flexibleSpace: _appBar(),
+              actions: [
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.delete),
+                ),
+              ],
             ),
             body: Column(
               children: [
-                Expanded(
-                  child: StreamBuilder(
-                    stream: controller.streamAllMessages(user),
-                    builder: (context, snapshot) {
-                      switch (snapshot.connectionState) {
-                        // if data is loading
-                        case ConnectionState.waiting:
-                        case ConnectionState.none:
-                          return const SizedBox();
+                _messageListView(),
 
-                        // if some or all data is loaded then show it
-                        case ConnectionState.active:
-                        case ConnectionState.done:
-                          final messages = snapshot.data;
-
-                          if (messages!.isNotEmpty) {
-                            return ListView.builder(
-                              itemCount: messages.length,
-                              shrinkWrap: false,
-                              itemBuilder: (context, index) => MessageCard(
-                                  message: messages[index], user: user),
-                              reverse: true,
-                            );
-                          } else {
-                            return const Center(
-                              child: Text(
-                                'Say Hii👋🏼',
-                                style: TextStyle(fontSize: 20),
-                              ),
-                            );
-                          }
-                      }
-                    },
-                  ),
-
-                  // ),
-                ),
-
-                GetBuilder<ChatController>(
+                // show this when uploading images
+                GetBuilder<ChatPageController>(
                   builder: (_) {
                     return controller.isUploading
                         ? const Align(
@@ -97,7 +96,7 @@ class ChatPage extends GetView<ChatController> {
                 ),
                 _chtInput(),
                 // if (controller.showEmoji)
-                GetBuilder<ChatController>(
+                GetBuilder<ChatPageController>(
                   builder: (_) {
                     return controller.showEmoji
                         ? SizedBox(
@@ -129,15 +128,123 @@ class ChatPage extends GetView<ChatController> {
     );
   }
 
-  Widget _appBar() {
-    return InkWell(
-      onTap: () => Get.to(
-        () => ViewProfilePage(weBuzzUser: user),
-        transition: Transition.rightToLeftWithFade,
-        curve: Curves.easeIn,
+  Widget _messageListView() {
+    return Expanded(
+      child: StreamBuilder<List<ChatMessage>>(
+        stream: controller.streamChatMessagesForAChat(widget.chat.uid),
+        builder: (context, snapshot) {
+          switch (snapshot.connectionState) {
+            // if data is loading
+            case ConnectionState.waiting:
+            case ConnectionState.none:
+              return const SizedBox();
+
+            // if some or all data is loaded then show it
+            case ConnectionState.active:
+            case ConnectionState.done:
+              _messages = snapshot.data!;
+
+              if (snapshot.data != null) {
+                if (_messages.isNotEmpty) {
+                  return ListView.builder(
+                    itemCount: _messages.length,
+                    shrinkWrap: false,
+                    itemBuilder: (context, index) => MessagesCard(
+                      message: _messages[index],
+                      user: widget.chat.members.firstWhere(
+                        (user) =>
+                            user.userId !=
+                            FirebaseAuth.instance.currentUser!.uid,
+                      ),
+                    ),
+                    reverse: true,
+                  );
+                } else {
+                  return const Center(
+                    child: Text(
+                      'Say Hii👋🏼',
+                      style: TextStyle(fontSize: 20),
+                    ),
+                  );
+                }
+              } else {
+                return const Center(
+                  child: Text(
+                    'Say Hii👋🏼',
+                    style: TextStyle(fontSize: 20),
+                  ),
+                );
+              }
+          }
+        },
       ),
-      child: StreamBuilder<WeBuzzUser>(
-          stream: controller.getUserInfo(user),
+
+      // ),
+    );
+  }
+
+  Widget _appBar() {
+    if (widget.chat.group) {
+      return InkWell(
+        child: Row(
+          children: [
+            IconButton(
+              onPressed: () => Get.back(),
+              icon: const Icon(Icons.arrow_back),
+            ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(size.height * .03),
+              child: CachedNetworkImage(
+                width: size.height * .05,
+                height: size.height * .05,
+                fit: BoxFit.fill,
+                imageUrl: widget.chat.imageUrl(),
+                errorWidget: (context, url, error) => const CircleAvatar(
+                  child: Icon(Icons.person),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.chat.title(),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+
+                    // color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'Online',
+                  style: TextStyle(fontSize: 13),
+                )
+              ],
+            ),
+          ],
+        ),
+      );
+    } else {
+      return InkWell(
+        onTap: () => Get.to(
+          () => ViewProfilePage(
+            weBuzzUser: widget.chat.members.firstWhere(
+              (user) => user.userId != FirebaseAuth.instance.currentUser!.uid,
+            ),
+          ),
+          transition: Transition.rightToLeftWithFade,
+          curve: Curves.easeIn,
+        ),
+        child: StreamBuilder<WeBuzzUser>(
+          stream: controller.getUserInfo(
+            widget.chat.members.firstWhere(
+              (user) => user.userId != FirebaseAuth.instance.currentUser!.uid,
+            ),
+          ),
           builder: (context, snapshot) {
             final data = snapshot.data;
             // final list = data
@@ -161,10 +268,24 @@ class ChatPage extends GetView<ChatController> {
                     imageUrl: data != null
                         ? data.imageUrl != null
                             ? data.imageUrl!
-                            : 'https://firebasestorage.googleapis.com/v0/b/my-hi-tweet.appspot.com/o/933-9332131_profile-picture-default-png.png?alt=media&token=7c98e0e7-c3bf-454e-8e7b-b0ec4b2ec900&_gl=1*1w37gdj*_ga*MTUxNDc4MTA2OC4xNjc1OTQwOTc4*_ga_CW55HF8NVT*MTY5ODMxOTk3Mi42MS4xLjE2OTgzMjAwMzEuMS4wLjA.'
-                        : user.imageUrl != null
-                            ? user.imageUrl!
-                            : 'https://firebasestorage.googleapis.com/v0/b/my-hi-tweet.appspot.com/o/933-9332131_profile-picture-default-png.png?alt=media&token=7c98e0e7-c3bf-454e-8e7b-b0ec4b2ec900&_gl=1*1w37gdj*_ga*MTUxNDc4MTA2OC4xNjc1OTQwOTc4*_ga_CW55HF8NVT*MTY5ODMxOTk3Mi42MS4xLjE2OTgzMjAwMzEuMS4wLjA.',
+                            : defaultProfileImage
+                        : widget.chat.members
+                                    .firstWhere(
+                                      (user) =>
+                                          user.userId !=
+                                          FirebaseAuth
+                                              .instance.currentUser!.uid,
+                                    )
+                                    .imageUrl !=
+                                null
+                            ? widget.chat.members
+                                .firstWhere(
+                                  (user) =>
+                                      user.userId !=
+                                      FirebaseAuth.instance.currentUser!.uid,
+                                )
+                                .imageUrl!
+                            : defaultProfileImage,
                     errorWidget: (context, url, error) => const CircleAvatar(
                       child: Icon(Icons.person),
                     ),
@@ -176,7 +297,15 @@ class ChatPage extends GetView<ChatController> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      data != null ? data.name : user.name,
+                      data != null
+                          ? data.name
+                          : widget.chat.members
+                              .firstWhere(
+                                (user) =>
+                                    user.userId !=
+                                    FirebaseAuth.instance.currentUser!.uid,
+                              )
+                              .name,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
@@ -186,20 +315,32 @@ class ChatPage extends GetView<ChatController> {
                     const SizedBox(height: 2),
                     Text(
                       data != null
-                          ? data.isOnline
+                          ? shouldDisplayOnlineStatus(data)
                               ? 'Online'
-                              : MethodUtils.getLastMessageTime(
-                                  time: data.lastActive)
-                          : MethodUtils.getLastMessageTime(
-                              time: user.lastActive),
+                              : MyDateUtil.getLastMessageTime(
+                                  time: data.lastActive,
+                                  showYear: true,
+                                )
+                          : MyDateUtil.getLastMessageTime(
+                              time: widget.chat.members
+                                  .firstWhere(
+                                    (user) =>
+                                        user.userId !=
+                                        FirebaseAuth.instance.currentUser!.uid,
+                                  )
+                                  .lastActive,
+                              showYear: true,
+                            ),
                       style: const TextStyle(fontSize: 13),
                     )
                   ],
                 )
               ],
             );
-          }),
-    );
+          },
+        ),
+      );
+    }
   }
 
   Widget _chtInput() {
@@ -227,7 +368,7 @@ class ChatPage extends GetView<ChatController> {
                     icon: const Icon(Icons.emoji_emotions),
                   ),
                   Expanded(
-                    child: TextField(
+                    child: TextFormField(
                       onTap: () {
                         if (controller.showEmoji) {
                           controller.updateEmoji();
@@ -237,11 +378,11 @@ class ChatPage extends GetView<ChatController> {
                       keyboardType: TextInputType.multiline,
                       maxLines: null,
                       decoration: InputDecoration(
-                          hintText: 'Type message...',
-                          hintStyle: TextStyle(
-                              color:
-                                  Theme.of(Get.context!).colorScheme.primary),
-                          border: InputBorder.none),
+                        hintText: 'Type message...',
+                        hintStyle: TextStyle(
+                            color: Theme.of(context).colorScheme.primary),
+                        border: InputBorder.none,
+                      ),
                     ),
                   ),
 
@@ -259,13 +400,14 @@ class ChatPage extends GetView<ChatController> {
                       // uploading and sending images one by one
                       for (var i in images) {
                         log("Image Path: ${i.path}");
-                        controller.isUpdateTrue();
+                        controller.isUploadingImage(true);
 
                         await controller.sendChatImage(
-                          user,
+                          currentChatUser,
                           File(i.path),
+                          widget.chat.uid,
                         );
-                        controller.isUpdateFalse();
+                        controller.isUploadingImage(false);
                       }
                     },
                     icon: const Icon(Icons.image),
@@ -283,12 +425,13 @@ class ChatPage extends GetView<ChatController> {
                       );
                       if (image != null) {
                         log("Image Path: ${image.path}");
-                        controller.isUpdateTrue();
+                        controller.isUploadingImage(true);
                         await controller.sendChatImage(
-                          user,
+                          currentChatUser,
                           File(image.path),
+                          widget.chat.uid,
                         );
-                        controller.isUpdateFalse();
+                        controller.isUploadingImage(false);
                       }
                     },
                     icon: const Icon(Icons.camera_alt_rounded),
@@ -302,20 +445,17 @@ class ChatPage extends GetView<ChatController> {
               ),
             ),
           ),
-
+          // send message
           MaterialButton(
             onPressed: () {
-              if (controller.messageEditingController.text.isNotEmpty) {
-                controller.sendMessage(
-                  user,
-                  controller.messageEditingController.text.trim(),
-                  MessageType.text,
-                );
-                controller.messageEditingController.text = '';
+              if (controller.messageEditingController!.text.isNotEmpty) {
+                // simple send message
+                controller.sendTextMessage(widget.chat.uid, MessageType.text);
               }
+              controller.messageEditingController!.text = '';
             },
             shape: const CircleBorder(),
-            color: Theme.of(Get.context!).colorScheme.primary,
+            color: Theme.of(context).colorScheme.primary,
             padding: const EdgeInsets.fromLTRB(10, 10, 5, 10),
             minWidth: 0,
             child: const Icon(

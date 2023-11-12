@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 class BasicInfoWidget extends StatelessWidget {
@@ -16,8 +15,7 @@ class BasicInfoWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return 
-    Container(
+    return Container(
       padding: const EdgeInsets.only(bottom: 35),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -27,7 +25,7 @@ class BasicInfoWidget extends StatelessWidget {
               CircleAvatar(
                 radius: 23,
                 backgroundColor:
-                    Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                    Theme.of(context).colorScheme.primary.withOpacity(0.7),
                 child: Icon(iconData),
               ),
               const SizedBox(width: 10),

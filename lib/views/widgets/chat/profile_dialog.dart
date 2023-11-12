@@ -3,7 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../model/user.dart';
+import '../../../model/we_buzz_user_model.dart';
 import '../../pages/view_profile/view_profile_page.dart';
 import '../../utils/constants.dart';
 

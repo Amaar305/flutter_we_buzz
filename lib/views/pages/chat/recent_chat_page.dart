@@ -1,131 +1,107 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hi_tweet/views/pages/chat/chat_page.dart';
 
-import '../../utils/constants.dart';
-import '../../widgets/chat/recent_chat_widget.dart';
-import 'chat_controller.dart';
+import '../../../model/chat_model.dart';
+import '../../../model/message_enum_type.dart';
+import '../../../model/we_buzz_user_model.dart';
+import '../../widgets/chat/custom_list_view.dart';
+import '../../widgets/custom_app_bar.dart';
+import 'add_users_page/add_users_page.dart';
+import 'recent_chat_controller.dart';
 
-class RecentChatPage extends GetView<ChatController> {
+late double _deviceHeight;
+late double _deviceWidth;
+
+class RecentChatPage extends GetView<RecentChatController> {
   const RecentChatPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: MediaQuery.of(context).size.height * 0.4,
-            title: const Text('Direct Message'),
-            centerTitle: false,
-            // backgroundColor:
-            //     Theme.of(context).colorScheme.secondary.withGreen(210),
-            actions: [
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.settings_outlined),
-              ),
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.flag_outlined),
-              ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-                child: Center(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 50),
-                      _builtSearchUserField(context),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Frequently contacted',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyLarge!
-                            .copyWith(fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.start,
-                      ),
-                      const SizedBox(height: 10),
-                      _builtFQUserSection()
-                    ],
-                  ),
-                ),
-              ),
+    _deviceHeight = MediaQuery.of(context).size.height;
+    _deviceWidth = MediaQuery.of(context).size.width;
+    return _buildUI();
+  }
+
+  Widget _buildUI() {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: _deviceWidth * 0.03,
+        vertical: _deviceHeight * 0.02,
+      ),
+      height: _deviceHeight * 0.90,
+      width: _deviceWidth * 0.97,
+      child: Column(
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          CustomAppBar(
+            'Chats',
+            primaryAction: IconButton(
+              onPressed: () => Get.toNamed(AddUsersPage.routeName),
+              icon: const Icon(Icons.add),
             ),
           ),
-          Obx(
-            () {
-              return SliverList.separated(
-                itemCount: controller.weBuzzLists.length,
-                itemBuilder: (context, index) {
-                  final user = controller.weBuzzLists[index];
-                  return RecentChats(
-                    weBuzzUser: user,
-                    onTap: () {
-                      Get.to(
-                        () => ChatPage(
-                          user: user,
-                        ),
-                      );
-                    },
-                  );
-                },
-                separatorBuilder: (context, index) =>
-                    const Divider(indent: 20, thickness: 0.02, endIndent: 20),
-              );
-            },
-          ),
+          _chatList(),
         ],
-        shrinkWrap: true,
       ),
     );
   }
 
-  SingleChildScrollView _builtFQUserSection() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: controller.fqusers,
+  Widget _chatList() {
+    return Expanded(
+      child: Obx(
+        () {
+          if (controller.chatConversations.isNotEmpty) {
+            return ListView.builder(
+              itemCount: controller.chatConversations.length,
+              itemBuilder: (context, index) =>
+                  _chatTile(controller.chatConversations[index]),
+            );
+          } else {
+            return const Center(
+              child: Text(
+                'No chat found!',
+                style: TextStyle(
+                  fontSize: 18,
+                ),
+              ),
+            );
+          }
+        },
       ),
     );
   }
 
-  TextField _builtSearchUserField(BuildContext context) {
-    return TextField(
-      decoration: InputDecoration(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12.0,
-          vertical: 20.0,
-        ),
-        prefixIcon: const Icon(
-          Icons.search,
-          size: 30,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(50),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.secondary,
-          ),
-          borderRadius: BorderRadius.circular(50),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: kDefaultGrey),
-          borderRadius: BorderRadius.circular(50),
-        ),
-        fillColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-        filled: true,
-        hintText: "Search direct message...",
-      ),
+  Widget _chatTile(ChatConversation chatConversation) {
+    List<WeBuzzUser> recepients = chatConversation.recepeints();
+    String subtitleText = '';
+    bool isOnline = recepients.any((d) => d.isOnline);
+    if (chatConversation.members.isNotEmpty) {
+      subtitleText = chatConversation.messages.isNotEmpty
+          ? chatConversation.messages.first.type != MessageType.text
+              ? 'Media Attachment'
+              : chatConversation.messages.first.content
+          : 'New chat';
+    }
+    return CustomListViewTileWithActivity(
+      onlineStatus: shouldDisplayOnlineStatus(recepients.firstWhere(
+          (user) => user.userId != FirebaseAuth.instance.currentUser!.uid)),
+      height: _deviceHeight * 0.10,
+      title: chatConversation.title(),
+      subtitle: subtitleText,
+      imageUrl: chatConversation.imageUrl(),
+      isOnline: isOnline,
+      isActivity: chatConversation.activity,
+      onTap: () {
+        Get.to(
+          () => ChatPage(chat: chatConversation),
+          transition: Transition.zoom,
+          curve: Curves.linearToEaseOut,
+        );
+      },
     );
   }
 }

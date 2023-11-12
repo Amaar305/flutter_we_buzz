@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hi_tweet/views/utils/constants.dart';
 
-import '../pages/dashboard/dashboard_controller.dart';
+import '../pages/dashboard/my_app_controller.dart';
 import '../widgets/home/my_button.dart';
 import '../widgets/home/my_textfield.dart';
 
@@ -46,7 +46,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text(
-                      'Sign up to Hi, Tweet',
+                      'Sign up to Webuzz',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,

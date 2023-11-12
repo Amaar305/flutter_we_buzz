@@ -153,6 +153,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.8"
+  device_information:
+    dependency: "direct main"
+    description:
+      name: device_information
+      sha256: "26dd2630a9db8e0c55f5685a5d515ed40ded24219f5e7f14dcfae5a2bd1f2ddf"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.4"
   emoji_picker_flutter:
     dependency: "direct main"
     description:
@@ -358,6 +366,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.17"
+  flutter_spinkit:
+    dependency: "direct main"
+    description:
+      name: flutter_spinkit
+      sha256: b39c753e909d4796906c5696a14daf33639a76e017136c8d82bf3e620ce5bb8e
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.2.0"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -861,6 +877,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.0"
+  swipe_to:
+    dependency: "direct main"
+    description:
+      name: swipe_to
+      sha256: "6274e148a02b32dfa8ae8634c9aa6196bf5bc2d88653650abd11d2eb52fc5e29"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.2"
   synchronized:
     dependency: transitive
     description:
@@ -885,6 +909,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.6.0"
+  timeago:
+    dependency: "direct main"
+    description:
+      name: timeago
+      sha256: c44b80cbc6b44627c00d76960f2af571f6f50e5dbedef4d9215d455e4335165b
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.6.0"
   typed_data:
     dependency: transitive
     description:

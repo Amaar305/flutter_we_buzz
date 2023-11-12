@@ -5,25 +5,26 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hi_tweet/views/utils/custom_full_screen_dialog.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nb_utils/nb_utils.dart';
 
-import '../../../model/user.dart';
+import '../../../model/we_buzz_user_model.dart';
 import '../../../services/firebase_constants.dart';
 import '../../../services/firebase_service.dart';
 import '../../../services/location_services.dart';
 import '../../registration/login_page.dart';
+import '../../utils/custom_full_screen_dialog.dart';
 import '../../utils/custom_snackbar.dart';
-import 'my_dashboard.dart';
+import 'my_app.dart';
 
 class AppController extends GetxController {
   static AppController instance = Get.find();
 
   FirebaseAuth auth = FirebaseAuth.instance;
 
-  final CollectionReference _collectionReference =
-      FirebaseService.firebaseFirestore.collection(firebaseWeBuzzUser);
+  final CollectionReference _collectionReference = FirebaseService
+      .firebaseFirestore
+      .collection(firebaseWeBuzzUserCollection);
 
   int tabIndex = 0;
 
@@ -42,13 +43,30 @@ class AppController extends GetxController {
   // email, password and name..
   late Rx<User?> _user;
 
-  RxList<WeBuzzUser> weBuzzLists = RxList<WeBuzzUser>([]);
+  RxList<WeBuzzUser> weBuzzUsers = RxList<WeBuzzUser>([]);
 
   WeBuzzUser? currentUser;
 
   void changeTabIndex(int index) {
     tabIndex = index;
     update();
+  }
+
+  // username generator by currentuser email
+  String usernameGenerator(String email) {
+    final username = email.split('@');
+    return username.first;
+  }
+
+  String city = '';
+
+  void getUserLocation() async {
+    try {
+      String city = await getCurrentCity();
+      this.city = city;
+    } catch (e) {
+      debugPrint('Error while tyring to get the location $e');
+    }
   }
 
   void canOrCannotSee() {
@@ -68,7 +86,10 @@ class AppController extends GetxController {
     phoneEditingController = TextEditingController();
     lavelEditingController = TextEditingController();
 
-    weBuzzLists.bindStream(_streamTweetBuzz());
+    // For getting current user location
+    getUserLocation();
+
+    weBuzzUsers.bindStream(_streamWeBuzzUsers());
   }
 
   @override
@@ -97,7 +118,7 @@ class AppController extends GetxController {
   }
 
   // Navigations configuration
-  _initialScreensSettings(User? user) async {
+  void _initialScreensSettings(User? user) async {
     if (user == null) {
       debugPrint("LOGGING");
       Get.offAll(() => const LoginPage());
@@ -117,7 +138,7 @@ class AppController extends GetxController {
   Future<void> fetchUserDetails(String currentId) async {
     try {
       final result = await FirebaseService.firebaseFirestore
-          .collection(firebaseWeBuzzUser)
+          .collection(firebaseWeBuzzUserCollection)
           .doc(currentId)
           .get();
 
@@ -130,12 +151,12 @@ class AppController extends GetxController {
       } else {
         //  autonatically create user in firestore
         // get city name
-        String city = await getCurrentCity();
 
         WeBuzzUser weBuzzUser = WeBuzzUser(
           userId: auth.currentUser!.uid,
           email: auth.currentUser!.email!,
           name: 'New User',
+          username: usernameGenerator(auth.currentUser!.email!),
           isOnline: true,
           isStaff: false,
           isAdmin: false,
@@ -148,14 +169,15 @@ class AppController extends GetxController {
           pushToken: '',
           followers: [],
           following: [],
+          savedBuzz: [],
+          blockedUsers: [],
         );
-// TODO might cause error!
         await FirebaseService.createUserInFirestore(
                 weBuzzUser, auth.currentUser!.uid)
             .then((value) {
           fetchUserDetails(auth.currentUser!.uid);
         });
-        CustomSnackBar.showSnackBAr(
+        CustomSnackBar.showSnackBar(
           context: Get.context,
           title: 'Warning!',
           message:
@@ -171,7 +193,7 @@ class AppController extends GetxController {
       update();
     } catch (e) {
       debugPrint(e.toString());
-      CustomSnackBar.showSnackBAr(
+      CustomSnackBar.showSnackBar(
         context: Get.context,
         title: 'Error',
         message:
@@ -184,14 +206,30 @@ class AppController extends GetxController {
   }
 
   void logOut() async {
+    CustomFullScreenDialog.showDialog();
     changeTabIndex(0);
     // for updating user status isOnline to false
 
     await FirebaseService.updateActiveStatus(false);
     // ChatController.instance.weBuzzLists.value = [];
 
-    await auth.signOut().then((value) => auth = FirebaseAuth.instance);
-    obscureText = false;
+    try {
+      await auth.signOut().then((_) {
+        auth = FirebaseAuth.instance;
+        CustomFullScreenDialog.cancleDialog();
+      });
+      obscureText = false;
+    } catch (e) {
+      CustomFullScreenDialog.cancleDialog();
+      CustomSnackBar.showSnackBar(
+        context: Get.context,
+        title: "Warning!",
+        message: "Something wen't wrong, try again later!",
+        backgroundColor:
+            Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
+      );
+      Get.offAllNamed(LoginPage.routeName);
+    }
     update();
   }
 
@@ -217,13 +255,13 @@ class AppController extends GetxController {
         );
         QuerySnapshot<Map<String, dynamic>> result = await FirebaseService
             .firebaseFirestore
-            .collection(firebaseWeBuzzUser)
+            .collection(firebaseWeBuzzUserCollection)
             .where('email', isEqualTo: emailEditingController.text.trim())
             .get();
 
         if (result.docs.isEmpty) {
           CustomFullScreenDialog.cancleDialog();
-          CustomSnackBar.showSnackBAr(
+          CustomSnackBar.showSnackBar(
             context: Get.context,
             title: 'Warning!',
             message:
@@ -238,7 +276,7 @@ class AppController extends GetxController {
 
         if (result.docs.length != 1) {
           CustomFullScreenDialog.cancleDialog();
-          CustomSnackBar.showSnackBAr(
+          CustomSnackBar.showSnackBar(
             context: Get.context,
             title: 'Warning!',
             message:
@@ -256,7 +294,7 @@ class AppController extends GetxController {
         CustomFullScreenDialog.cancleDialog();
 
         if (err.code.contains('INVALID_LOGIN_CREDENTIALS')) {
-          CustomSnackBar.showSnackBAr(
+          CustomSnackBar.showSnackBar(
             context: Get.context,
             title: "About user",
             message: 'Invalid email address or password',
@@ -264,7 +302,7 @@ class AppController extends GetxController {
                 Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
           );
         } else {
-          CustomSnackBar.showSnackBAr(
+          CustomSnackBar.showSnackBar(
             context: Get.context,
             title: "About user",
             message: err.message.toString(),
@@ -273,9 +311,8 @@ class AppController extends GetxController {
           );
         }
       } catch (e) {
-        
         CustomFullScreenDialog.cancleDialog();
-        CustomSnackBar.showSnackBAr(
+        CustomSnackBar.showSnackBar(
           context: Get.context,
           title: "About user",
           message: "Something went wrong, try again later!",
@@ -287,7 +324,6 @@ class AppController extends GetxController {
       // register
       CustomFullScreenDialog.showDialog();
       // get city name
-      String city = await getCurrentCity();
 
       try {
         final credential = await auth.createUserWithEmailAndPassword(
@@ -296,7 +332,7 @@ class AppController extends GetxController {
         );
         if (credential.user == null) {
           CustomFullScreenDialog.cancleDialog();
-          CustomSnackBar.showSnackBAr(
+          CustomSnackBar.showSnackBar(
             context: Get.context,
             title: 'Warning!',
             message: 'We can\'t register you at the moment!',
@@ -308,6 +344,7 @@ class AppController extends GetxController {
         final campusBuzzUser = WeBuzzUser(
           userId: credential.user!.uid,
           email: emailEditingController.text.trim(),
+          username: usernameGenerator(emailEditingController.text.trim()),
           isOnline: true,
           isStaff: false,
           isAdmin: false,
@@ -321,6 +358,8 @@ class AppController extends GetxController {
           lastActive: DateTime.now().millisecondsSinceEpoch.toString(),
           followers: [],
           following: [],
+          savedBuzz: [],
+          blockedUsers: [],
         );
 
         await FirebaseService.createUserInFirestore(
@@ -332,7 +371,7 @@ class AppController extends GetxController {
         update();
       } on FirebaseAuthException catch (err) {
         CustomFullScreenDialog.cancleDialog();
-        CustomSnackBar.showSnackBAr(
+        CustomSnackBar.showSnackBar(
           context: Get.context,
           title: "About user",
           message: err.message.toString(),
@@ -340,7 +379,7 @@ class AppController extends GetxController {
               Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
         );
       } catch (e) {
-        CustomSnackBar.showSnackBAr(
+        CustomSnackBar.showSnackBar(
           context: Get.context,
           title: "About user",
           message: "Something went wrong, try again later!",
@@ -386,7 +425,7 @@ class AppController extends GetxController {
         update();
       } catch (e) {
         CustomFullScreenDialog.cancleDialog();
-        CustomSnackBar.showSnackBAr(
+        CustomSnackBar.showSnackBar(
           context: Get.context,
           title: "Warning!",
           message: "Something wen't wrong, try again later!",
@@ -396,6 +435,44 @@ class AppController extends GetxController {
       }
       update();
     }
+  }
+
+// update user dm privacy
+  void updateUserDMPrivacy(String directMessagePrivacy) async {
+    CustomFullScreenDialog.showDialog();
+    try {
+      await FirebaseService.updateUserData(
+        {
+          "directMessagePrivacy": directMessagePrivacy,
+        },
+      ).whenComplete(() => CustomFullScreenDialog.cancleDialog());
+      await fetchUserDetails(auth.currentUser!.uid);
+    } catch (e) {
+      CustomFullScreenDialog.cancleDialog();
+
+      log(e);
+      log("Error updating user privacy");
+    }
+    update();
+  }
+
+// update user online status
+  void updateUserOnlineStatusPrivacy(String onlineStatusIndicator) async {
+    CustomFullScreenDialog.showDialog();
+    try {
+      await FirebaseService.updateUserData(
+        {
+          "onlineStatusIndicator": onlineStatusIndicator,
+        },
+      ).whenComplete(() => CustomFullScreenDialog.cancleDialog());
+      await fetchUserDetails(auth.currentUser!.uid);
+    } catch (e) {
+      CustomFullScreenDialog.cancleDialog();
+
+      log(e);
+      log("Error updating user privacy");
+    }
+    update();
   }
 
 // update if user likes or doesn't like push notification
@@ -412,7 +489,7 @@ class AppController extends GetxController {
         update();
       } catch (e) {
         CustomFullScreenDialog.cancleDialog();
-        CustomSnackBar.showSnackBAr(
+        CustomSnackBar.showSnackBar(
           context: Get.context,
           title: "Warning!",
           message: "Something wen't wrong, try again later!",
@@ -448,7 +525,7 @@ class AppController extends GetxController {
     } catch (e) {
       log(e.toString());
       CustomFullScreenDialog.cancleDialog();
-      CustomSnackBar.showSnackBAr(
+      CustomSnackBar.showSnackBar(
         context: Get.context,
         title: "Image picker",
         message: "You haven't picked an image!",
@@ -491,7 +568,7 @@ class AppController extends GetxController {
         } catch (e) {
           log(e.toString());
           CustomFullScreenDialog.cancleDialog();
-          CustomSnackBar.showSnackBAr(
+          CustomSnackBar.showSnackBar(
             context: Get.context,
             title: "Error",
             message: "Something went wrong try again later!",
@@ -530,7 +607,7 @@ class AppController extends GetxController {
         } catch (e) {
           log(e.toString());
           CustomFullScreenDialog.cancleDialog();
-          CustomSnackBar.showSnackBAr(
+          CustomSnackBar.showSnackBar(
             context: Get.context,
             title: "Error",
             message: "Something went wrong try again later!",
@@ -550,9 +627,9 @@ class AppController extends GetxController {
     clearTextControllers();
   }
 
-  Stream<List<WeBuzzUser>> _streamTweetBuzz() {
+  Stream<List<WeBuzzUser>> _streamWeBuzzUsers() {
     return FirebaseService.firebaseFirestore
-        .collection(firebaseWeBuzzUser)
+        .collection(firebaseWeBuzzUserCollection)
         .snapshots()
         .map((query) =>
             query.docs.map((user) => WeBuzzUser.fromDocument(user)).toList());

@@ -8,14 +8,15 @@ import 'package:image_picker/image_picker.dart';
 import 'package:nb_utils/nb_utils.dart';
 
 import '../../../model/buzz_enum.dart';
-import '../../../model/webuzz_model.dart';
+import '../../../model/we_buzz_model.dart';
 import '../../../services/firebase_service.dart';
-import '../../../services/location_services.dart';
 import '../../utils/custom_full_screen_dialog.dart';
 import '../../utils/custom_snackbar.dart';
 import '../../utils/method_utils.dart';
+import '../dashboard/my_app_controller.dart';
+import 'hashtag_sytem.dart';
 
-class CreateTweetController extends GetxController {
+class CreateBuzzController extends GetxController {
   TextEditingController? textEditingController;
 
   // Has the image been picked?
@@ -51,6 +52,7 @@ class CreateTweetController extends GetxController {
     cancleImage(false);
   }
 
+  // downloaded image url that has been sent ot cloud storage
   String? downloadedImage;
 
   void selectImage() async {
@@ -72,13 +74,13 @@ class CreateTweetController extends GetxController {
 
         if (pickedImagePath != null && isImagePicked) {
           downloadedImage = await FirebaseService.uploadImage(
-                  pickedImagePath!, 'images/${loggedInUser!.uid}/')
+                  pickedImagePath!, 'post_images/${loggedInUser!.uid}/')
               .whenComplete(() => CustomFullScreenDialog.cancleDialog());
         }
       } catch (e) {
         log(e.toString());
         CustomFullScreenDialog.cancleDialog();
-        CustomSnackBar.showSnackBAr(
+        CustomSnackBar.showSnackBar(
           context: Get.context,
           title: "Image picker",
           message: "You haven't picked an image!",
@@ -90,29 +92,17 @@ class CreateTweetController extends GetxController {
     }
   }
 
-  List<String> hashtags = [];
-
   // Send
   void createTweet() async {
     CustomFullScreenDialog.showDialog();
     // Getting user info
     final loggedInUser = FirebaseAuth.instance.currentUser;
-    String location = await getCurrentCity();
+    String location = AppController.instance.city;
 
     if (textEditingController!.text.isNotEmpty && loggedInUser != null) {
       isImagePicked = false;
 
-      final text = textEditingController!.text;
-      final hashtagRegx = RegExp(r'#\w+');
-
-      final matches = hashtagRegx.allMatches(text);
-
-      for (var matche in matches) {
-        if (matche.group(0) != null) {
-          hashtags.add(matche.group(0)!);
-          log('${matche.group(0)} the Matches');
-        }
-      }
+      final hashtags = hashTagSystem(textEditingController!.text);
 
       WeBuzz tweetBuzz = WeBuzz(
         id: MethodUtils.generatedId,
@@ -120,28 +110,29 @@ class CreateTweetController extends GetxController {
         authorId: loggedInUser.uid,
         content: textEditingController!.text.trim(),
         createdAt: Timestamp.now(),
-        comments: [],
-        reBuzzCount: 0,
+        reBuzzsCount: 0,
         buzzType: BuzzType.origianl.name,
         hashtags: hashtags,
         location: location,
         source: 'Samsumng',
         imageUrl: downloadedImage,
         likes: [],
-        views: [],
-        reposts: [],
-        originalId: ''
+        replies: [],
+        rebuzzs: [],
+        originalId: '',
+        likesCount: 0,
+        isRebuzz: false,
+        repliesCount: 0,
       );
 
       try {
-        await FirebaseService.createTweetInFirestore(tweetBuzz)
-            .whenComplete(() {
+        await FirebaseService.createBuzzInFirestore(tweetBuzz).whenComplete(() {
           CustomFullScreenDialog.cancleDialog();
           Get.back();
         });
       } catch (e) {
         CustomFullScreenDialog.cancleDialog();
-        CustomSnackBar.showSnackBAr(
+        CustomSnackBar.showSnackBar(
           context: Get.context,
           title: "Warning!",
           message: "Something wen't wrong, try again later!",
@@ -155,7 +146,7 @@ class CreateTweetController extends GetxController {
       update();
     } else {
       CustomFullScreenDialog.cancleDialog();
-      CustomSnackBar.showSnackBAr(
+      CustomSnackBar.showSnackBar(
         context: Get.context,
         title: "Warning!",
         message: "The user doesn't logged in, or description is empty",

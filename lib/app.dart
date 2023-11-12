@@ -2,9 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'app_binding.dart';
+import 'views/pages/chat/add_users_page/add_users_page.dart';
 import 'views/pages/create/create_page.dart';
-import 'views/pages/dashboard/my_dashboard.dart';
+import 'views/pages/dashboard/my_app.dart';
+import 'views/pages/home/reply/reply_page.dart';
+import 'views/pages/settings/blocked_userspage.dart';
+import 'views/pages/settings/direct_message_privacy_page.dart';
 import 'views/pages/settings/edit_profile_page.dart';
+import 'views/pages/settings/online_status_indicator_privacy_page.dart';
+import 'views/pages/settings/privacy_page.dart';
+import 'views/pages/settings/save_buzz_page.dart';
 import 'views/pages/settings/setting_page.dart';
 import 'views/pages/settings/settings_controller.dart';
 import 'views/registration/login_page.dart';
@@ -51,6 +58,12 @@ class MyApp extends StatelessWidget {
           curve: Curves.easeIn,
         ),
         GetPage(
+          name: RepliesPage.routeName,
+          page: () => const RepliesPage(),
+          transition: Transition.leftToRightWithFade,
+          curve: Curves.easeIn,
+        ),
+        GetPage(
           name: SettingPage.routeName,
           page: () => const SettingPage(),
           transition: Transition.circularReveal,
@@ -59,6 +72,42 @@ class MyApp extends StatelessWidget {
         GetPage(
           name: EditProfilePage.routeName,
           page: () => const EditProfilePage(),
+          transition: Transition.rightToLeftWithFade,
+          curve: Curves.easeIn,
+        ),
+        GetPage(
+          name: AddUsersPage.routeName,
+          page: () => const AddUsersPage(),
+          transition: Transition.rightToLeftWithFade,
+          curve: Curves.easeIn,
+        ),
+        GetPage(
+          name: PrivacyPage.routeName,
+          page: () => const PrivacyPage(),
+          transition: Transition.rightToLeftWithFade,
+          curve: Curves.easeIn,
+        ),
+        GetPage(
+          name: DirectMessagePrivacyPage.routeName,
+          page: () => const DirectMessagePrivacyPage(),
+          transition: Transition.rightToLeftWithFade,
+          curve: Curves.easeIn,
+        ),
+        GetPage(
+          name: BlockedUsersPrivacyPage.routeName,
+          page: () => const BlockedUsersPrivacyPage(),
+          transition: Transition.rightToLeftWithFade,
+          curve: Curves.easeIn,
+        ),
+        GetPage(
+          name: OnlineStatusIndicatorPrivacyPage.routeName,
+          page: () => const OnlineStatusIndicatorPrivacyPage(),
+          transition: Transition.rightToLeftWithFade,
+          curve: Curves.easeIn,
+        ),
+        GetPage(
+          name: SaveBuzzPage.routeName,
+          page: () => const SaveBuzzPage(),
           transition: Transition.rightToLeftWithFade,
           curve: Curves.easeIn,
         ),
