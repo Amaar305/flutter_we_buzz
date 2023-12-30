@@ -5,3 +5,10 @@ enum MessageType {
   audio,
   unknown,
 }
+
+enum MessageStatus {
+  notSent,
+  notView,
+  viewed,
+  unknown,
+}

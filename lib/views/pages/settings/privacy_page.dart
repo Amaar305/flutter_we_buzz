@@ -38,7 +38,10 @@ class PrivacyPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CustomAppBar('Privacy'),
+              CustomAppBar(
+                'Privacy',
+                secondaryAction: const BackButton(),
+              ),
               MySettingOption1(
                 onTap: () => Get.toNamed(DirectMessagePrivacyPage.routeName),
                 iconData: Icons.chat_bubble,

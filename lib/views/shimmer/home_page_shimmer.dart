@@ -33,17 +33,17 @@ class ShimmerHomeWidget extends StatelessWidget {
           children: [
             _postShimmerHeader(),
             const SizedBox(height: 10),
-            const ShimmerSkeleton(width: double.infinity, height: 8),
+            const ShimmerSkeleton(width: double.infinity, height: 20),
             const SizedBox(height: 10),
-            const ShimmerSkeleton(width: double.infinity, height: 8),
+            const ShimmerSkeleton(width: double.infinity, height: 20),
             const SizedBox(height: 10),
-            const ShimmerSkeleton(width: double.infinity, height: 8),
+            const ShimmerSkeleton(width: double.infinity, height: 20),
             const SizedBox(height: 10),
-            const ShimmerSkeleton(width: double.infinity, height: 8),
+            const ShimmerSkeleton(width: double.infinity, height: 20),
             const SizedBox(height: 10),
-            const ShimmerSkeleton(width: double.infinity, height: 8),
+            const ShimmerSkeleton(width: double.infinity, height: 20),
             const SizedBox(height: 10),
-            const ShimmerSkeleton(width: double.infinity, height: 8),
+            const ShimmerSkeleton(width: double.infinity, height: 20),
             const SizedBox(height: 10),
             _actionShimmerButton()
           ],
@@ -79,35 +79,35 @@ class ShimmerHomeWidget extends StatelessWidget {
         Row(
           children: [
             ShimmerSkeleton(
-              width: 30,
-              height: 30,
+              width: 35,
+              height: 35,
             ),
             SizedBox(
               width: 5,
             ),
             ShimmerSkeleton(
               width: 100,
-              height: 8,
+              height: 15,
             ),
             SizedBox(
               width: 5,
             ),
             ShimmerSkeleton(
-              width: 10,
-              height: 10,
+              width: 20,
+              height: 20,
             ),
             SizedBox(
               width: 5,
             ),
             ShimmerSkeleton(
-              height: 8,
+              height: 15,
               width: 50,
             )
           ],
         ),
         ShimmerSkeleton(
           width: 22,
-          height: 5,
+          height: 10,
         )
       ],
     );

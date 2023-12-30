@@ -45,7 +45,7 @@ class CustomAppBar extends StatelessWidget {
   }
 
   Widget _titleBar() {
-    return FittedBox(
+    return Flexible(
       child: Text(
         _barTitle,
         overflow: TextOverflow.ellipsis,

@@ -2,11 +2,11 @@ import 'package:fluentui_icons/fluentui_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:hi_tweet/views/pages/create/create_page.dart';
-import 'package:hi_tweet/views/pages/home/home_controller.dart';
 import 'package:nb_utils/nb_utils.dart';
 
+import '../../../services/firebase_service.dart';
 import '../chat/recent_chat_page.dart';
+import '../create/create_page.dart';
 import '../home/home_page.dart';
 import '../notification/notifications_page.dart';
 import '../profile/profile_page.dart';
@@ -23,59 +23,45 @@ class MyBottomNavBar extends StatefulWidget {
 class _MyBottomNavBarState extends State<MyBottomNavBar> {
   @override
   Widget build(BuildContext context) {
-    return GetBuilder<AppController>(
-      builder: (controller) {
-        return SafeArea(
-          child: WillPopScope(
-            onWillPop: () => handleBackPressed(),
-            child: Scaffold(
-              body: Stack(
-                alignment: Alignment.bottomCenter,
-                children: [
-                  SafeArea(
-                    child: IndexedStack(
-                      index: controller.tabIndex,
-                      children: const [
-                        HomePage(),
-                        RecentChatPage(),
-                        NotificationsPage(),
-                        ProfilePage(),
-                      ],
-                    ),
-                  ),
-                  _bottomNav(context, controller),
-                  // controller.tabIndex == 0 &&
-                  //         HomeController.instance.showButton.value &&
-                  //         HomeController.instance.weeBuzzItems.length > 10
-                  //     ? _newPostIndecator(context)
-                  //     : const SizedBox(),
-                ],
-              ),
-              // floatingActionButton: controller.tabIndex == 1
-              //     ? FloatingActionButton(
-              //         onPressed: () => Get.toNamed(AddUsersPage.routeName),
-              //         child: const Icon(Icons.add),
-              //       )
-              //     : const SizedBox(),
-              // floatingActionButtonLocation:
-              //     FloatingActionButtonLocation.startTop,
-            ),
-          ),
-        );
+    return WillPopScope(
+      onWillPop: () async {
+        return onWillPop(context);
       },
+      child: GetBuilder<AppController>(
+        builder: (controller) {
+          return Scaffold(
+            body: Stack(
+              alignment: Alignment.bottomCenter,
+              children: [
+                IndexedStack(
+                  index: controller.tabIndex,
+                  children: const [
+                    HomePage(),
+                    RecentChatPage(),
+                    NotificationsPage(),
+                    ProfilePage(),
+                  ],
+                ),
+                _bottomNav(context, controller),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
-  Future<bool> handleBackPressed() async {
-    var differenceIcon = DateTime.now();
-    final difference = DateTime.now().difference(differenceIcon);
-
-    if (difference >= const Duration(seconds: 2)) {
+  DateTime currentBackPressTime = DateTime.now();
+  Future<bool> onWillPop(BuildContext context) async {
+    DateTime now = DateTime.now();
+    if (now.difference(currentBackPressTime) > const Duration(seconds: 2)) {
+      currentBackPressTime = now;
       toast('Press again to exit');
-      return Future.value(false);
+      return false;
     } else {
       SystemNavigator.pop(animated: true);
-      return Future.value(true);
+      await FirebaseService.updateActiveStatus(false);
+      return true;
     }
   }
 
@@ -91,9 +77,7 @@ class _MyBottomNavBarState extends State<MyBottomNavBar> {
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () {
-            HomeController.instance.scrollToTop();
-          },
+          onTap: () {},
           child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -195,7 +179,7 @@ class _MyBottomNavBarState extends State<MyBottomNavBar> {
                     Icons.add,
                     size: 30,
                   ),
-                  onPressed: () => Get.toNamed(CreateTweetPage.routeName),
+                  onPressed: () => Get.toNamed(CreateBuzzPage.routeName),
                   style: IconButton.styleFrom(
                     padding: const EdgeInsets.all(15),
                     backgroundColor: Theme.of(context).colorScheme.primary,

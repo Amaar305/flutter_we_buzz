@@ -5,8 +5,9 @@ import 'package:hi_tweet/views/utils/constants.dart';
 import '../../widgets/create/my_iconbutton.dart';
 import 'create_controller.dart';
 
-class CreateTweetPage extends GetView<CreateBuzzController> {
-  const CreateTweetPage({super.key});
+class CreateBuzzPage extends GetView<CreateBuzzController> {
+  const CreateBuzzPage({this.isStaff, super.key});
+  final bool? isStaff;
 
   static const routeName = '/create-buzz';
 
@@ -19,24 +20,7 @@ class CreateTweetPage extends GetView<CreateBuzzController> {
           padding: kDefaultAppPadding,
           child: Column(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      Get.back();
-                    },
-                    icon: const Icon(Icons.close),
-                  ),
-                  const Text(
-                    'New Buzz',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
+              _appBar(),
               Expanded(
                 child: ListView(
                   children: [
@@ -48,12 +32,13 @@ class CreateTweetPage extends GetView<CreateBuzzController> {
                         hintText: 'Start a buzz...',
                       ),
                       maxLength: 250,
-                      maxLines: 2,
+                      maxLines: 4,
                     ),
                     const SizedBox(height: 12),
                     GetBuilder<CreateBuzzController>(
                       builder: (_) {
-                        if (controller.pickedImagePath != null) {
+                        if (controller.pickedGifPath != null ||
+                            controller.pickedImagePath != null) {
                           return AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             height: controller.isImagePicked
@@ -66,7 +51,8 @@ class CreateTweetPage extends GetView<CreateBuzzController> {
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(20),
                                   child: Image.file(
-                                    controller.pickedImagePath!,
+                                    controller.pickedGifPath ??
+                                        controller.pickedImagePath!,
                                     fit: BoxFit.cover,
                                     width: double.maxFinite,
                                   ),
@@ -77,8 +63,7 @@ class CreateTweetPage extends GetView<CreateBuzzController> {
                                   child: Padding(
                                     padding: const EdgeInsets.all(8.0),
                                     child: GestureDetector(
-                                      onTap: () =>
-                                          controller.cancleImage(false),
+                                      onTap: () => controller.cancleImage(true),
                                       child: const CircleAvatar(
                                         radius: 15,
                                         backgroundColor: Colors.white54,
@@ -96,55 +81,7 @@ class CreateTweetPage extends GetView<CreateBuzzController> {
                       },
                     ),
                     const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Row(
-                          children: [
-                            MyIconButton(
-                              color: Theme.of(context).colorScheme.primary,
-                              backgroundColor: Colors.black,
-                              onPressed: () {
-                                controller.selectImage();
-                              },
-                              icon: Icons.image_outlined,
-                            ),
-                            MyIconButton(
-                              color: Colors.black,
-                              backgroundColor: Colors.grey.shade200,
-                              onPressed: () {},
-                              icon: Icons.gif,
-                            ),
-                            MyIconButton(
-                              color: Colors.black,
-                              backgroundColor: Colors.grey.shade200,
-                              onPressed: () {},
-                              icon: Icons.location_on_outlined,
-                            ),
-                          ],
-                        ),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: () {
-                            controller.createTweet();
-                          },
-                          style: TextButton.styleFrom(
-                            backgroundColor:
-                                Theme.of(context).colorScheme.primary,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 15,
-                              vertical: 12,
-                            ),
-                          ),
-                          child: const Text(
-                            'Post Now',
-                            style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black),
-                          ),
-                        ),
-                      ],
-                    ),
+                    _buitBuzzActionButton(context),
                   ],
                 ),
               ),
@@ -152,6 +89,72 @@ class CreateTweetPage extends GetView<CreateBuzzController> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buitBuzzActionButton(BuildContext context) {
+    return Row(
+      children: [
+        Row(
+          children: [
+            MyIconButton(
+              color: Theme.of(context).colorScheme.primary,
+              backgroundColor: Colors.black,
+              onPressed: () {
+                controller.selectImage();
+              },
+              icon: Icons.image_outlined,
+            ),
+            MyIconButton(
+              color: Colors.black,
+              backgroundColor: Colors.grey.shade200,
+              onPressed: () {
+                controller.pickedGIF();
+              },
+              icon: Icons.gif,
+            ),
+          ],
+        ),
+        const Spacer(),
+        TextButton(
+          onPressed: () {
+            controller.createTweet(isStaff: isStaff);
+          },
+          style: TextButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 15,
+              vertical: 12,
+            ),
+          ),
+          child: const Text(
+            'Buzz Now',
+            style: TextStyle(
+                fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _appBar() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        IconButton(
+          onPressed: () {
+            Get.back();
+          },
+          icon: const Icon(Icons.close),
+        ),
+        const Text(
+          'New Buzz',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
     );
   }
 }

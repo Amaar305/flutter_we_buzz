@@ -23,12 +23,11 @@ class SaveBuzzPage extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         child: Container(
-          padding: EdgeInsetsDirectional.symmetric(
+          padding: EdgeInsets.symmetric(
             horizontal: deviceWidth * 0.03,
             vertical: deviceHeight * 0.02,
           ),
-          height: deviceHeight * 0.98,
-          width: deviceWidth * 0.97,
+          // width: deviceWidth * 0.97,
           child: Column(
             mainAxisSize: MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.start,

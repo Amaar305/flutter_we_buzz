@@ -1,40 +1,34 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:hi_tweet/model/report_buzz.dart';
-import 'package:hi_tweet/views/pages/dashboard/my_app_controller.dart';
-import 'package:hi_tweet/views/utils/method_utils.dart';
 import 'package:nb_utils/nb_utils.dart';
 
 import '../../../model/buzz_enum.dart';
-import '../../../model/chat_message.dart';
+import '../../../model/chat_message_model.dart';
 import '../../../model/chat_model.dart';
+import '../../../model/notification_model.dart';
+import '../../../model/report_buzz.dart';
 import '../../../model/we_buzz_user_model.dart';
 import '../../../model/we_buzz_model.dart';
 import '../../../services/firebase_constants.dart';
 import '../../../services/firebase_service.dart';
+import '../../../services/notification_services.dart';
 import '../../utils/custom_full_screen_dialog.dart';
-import '../chat/chat_page.dart';
+import '../../utils/method_utils.dart';
+import '../chat/messages/messages_page.dart';
+import '../dashboard/my_app_controller.dart';
 
 class HomeController extends GetxController {
   static final HomeController instance = Get.find();
-  RxBool isSearched = RxBool(false);
-
-  // for showing button when new post is detected
-  var showButton = false.obs;
-
-  ScrollController scrollController = ScrollController();
 
   RxList<WeBuzz> weeBuzzItems = RxList<WeBuzz>([]);
-  RxList<WeBuzz> searchWebuzz = RxList<WeBuzz>([]);
 
-  RxBool isTyping = RxBool(false);
   RxBool isAnimated = RxBool(false);
-
-  late TextEditingController searchEditingController;
+  late Timer timer;
+  double rotate = 0.0;
 
   @override
   void onInit() {
@@ -53,51 +47,10 @@ class HomeController extends GetxController {
       return Future.value(message);
     });
     weeBuzzItems.bindStream(_streamTweetBuzz());
-    searchEditingController = TextEditingController();
-    // showButton.value = scrollController.position.pixels > 0;
-  }
-
-  void searchTweet() {
-    setIsTyping(true);
-
-    searchWebuzz.value = weeBuzzItems
-        .where(
-          (buzz) => buzz.content.toLowerCase().contains(
-                searchEditingController.text.trim().toLowerCase(),
-              ),
-        )
-        .toList();
-  }
-
-  void clearAndSearch() {
-    isTyping.value = false;
-    searchEditingController.text = '';
-    update();
-  }
-
-  void setIsTyping(bool isTyping) {
-    this.isTyping.value = isTyping;
-
-    update();
-  }
-
-  void search() {
-    if (isSearched.isFalse) {
-      isSearched.value = true;
-      if (kDebugMode) {
-        print('Search!!!');
-      }
-    } else {
-      isSearched.value = false;
-      clearAndSearch();
-
-      if (kDebugMode) {
-        print('Unsearch!!!');
-      }
-      setIsTyping(false);
-    }
-
-    update();
+    timer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
+      rotate += 0.005;
+      update();
+    });
   }
 
   Future<WeBuzz> getPostWithAdditionalData(WeBuzz weBuzz) async {
@@ -142,16 +95,6 @@ class HomeController extends GetxController {
     );
   }
 
-  void scrollToTop() {
-    scrollController.animateTo(
-      0.0,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-    );
-    showButton.value = false;
-  }
-
-// TODO fix how new post indicator will work
   Stream<List<WeBuzz>> _streamTweetBuzz() {
     CollectionReference collectionReference =
         FirebaseService.firebaseFirestore.collection(firebaseWeBuzzCollection);
@@ -160,45 +103,46 @@ class HomeController extends GetxController {
         // .where('isPublished', isEqualTo: true)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((query) {
-      var docs = query.docs;
-      if (query.docs.length > weeBuzzItems.length) {
-        showButton.value = true;
-      }
-      return docs.map((item) => WeBuzz.fromDocumentSnapshot(item)).toList();
-    });
+        .map(
+          (query) => query.docs
+              .map((item) => WeBuzz.fromDocumentSnapshot(item))
+              .toList(),
+        );
   }
 
-  void updateViews(WeBuzz buzz, String field) async {
+  void updateViews(WeBuzz buzz) async {
     if (FirebaseAuth.instance.currentUser != null) {
       final loggedInUserId = FirebaseAuth.instance.currentUser!.uid;
-      CustomFullScreenDialog.showDialog();
+
+      // get post owner info
+      final targetUser = AppController.instance.weBuzzUsers
+          .firstWhere((user) => user.userId == buzz.authorId);
 
       if (buzz.likes.contains(loggedInUserId)) {
         try {
-          await FirebaseService.firebaseFirestore
-              .collection(firebaseWeBuzzCollection)
-              .doc(buzz.docId)
-              .update({
-            field: FieldValue.arrayRemove([loggedInUserId])
-          }).whenComplete(() => CustomFullScreenDialog.cancleDialog());
-          log('Successifully removedddddddddddddddddddddddddddddddddddddddddddddddd');
+          await FirebaseService.updateBuzz(buzz.docId, {
+            'likes': FieldValue.arrayRemove([loggedInUserId])
+          });
+          toast('Unliked');
         } catch (e) {
-          CustomFullScreenDialog.cancleDialog();
-          log('errorrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr');
+          log('Error unliking the post');
         }
       } else {
         try {
-          await FirebaseService.firebaseFirestore
-              .collection(firebaseWeBuzzCollection)
-              .doc(buzz.docId)
-              .update({
-            field: FieldValue.arrayUnion([loggedInUserId])
-          }).whenComplete(() => CustomFullScreenDialog.cancleDialog());
-          log('Successifully likessssssssssssssssssssssssssssssssssssssssss');
+          await FirebaseService.updateBuzz(buzz.docId, {
+            'likes': FieldValue.arrayUnion([loggedInUserId])
+          }).then((_) {
+            // If current user is not equal to the post author, send the notification
+            if (buzz.authorId != loggedInUserId) {
+              NotificationServices.sendNotification(
+                notificationType: NotificationType.postLiking,
+                targetUser: targetUser,
+              );
+            }
+          });
+          toast('Liked');
         } catch (e) {
-          CustomFullScreenDialog.cancleDialog();
-          log('errorrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr');
+          log('Error liking the post');
         }
       }
     }
@@ -468,12 +412,12 @@ class HomeController extends GetxController {
         }
 
         // last message
-        List<ChatMessage> messages = [];
+        List<MessageModel> messages = [];
         QuerySnapshot chatMessages = await FirebaseService()
             .getLastMessageForChat(chatDocument.id)
             .whenComplete(() => CustomFullScreenDialog.cancleDialog());
         if (chatMessages.docs.isNotEmpty) {
-          messages.add(ChatMessage.fromDocument(chatMessages.docs.first));
+          messages.add(MessageModel.fromDocumentSnapshot(chatMessages.docs.first));
         }
 
         ChatConversation chatConversation = ChatConversation(
@@ -485,11 +429,13 @@ class HomeController extends GetxController {
           messages: messages,
           recentTime: chatDocument['recent_time'],
           groupTitle: chatDocument['group_title'],
+          createdBy: chatDocument['created_by'],
+          createdAt: chatDocument['created_at'],
         );
         log('Successs Alhamdulillah');
 
         // Navigate to the chat page
-        Get.to(() => ChatPage(chat: chatConversation));
+        Get.to(() => MessagesPage(chat: chatConversation));
       } else {
         log('Chat does not exists.');
         // Creating chat conversation data in firestore database for new chat
@@ -499,7 +445,9 @@ class HomeController extends GetxController {
             "is_activity": false,
             "members": membersIDs,
             "recent_time": FieldValue.serverTimestamp(),
-            "group_title": null
+            "created_at": Timestamp.now(),
+            "created_by": FirebaseAuth.instance.currentUser!.uid,
+            "group_title": null,
           },
         );
 
@@ -517,7 +465,7 @@ class HomeController extends GetxController {
         }
 
         // Preparing the chat page before navigating
-        ChatPage chatPage = ChatPage(
+        MessagesPage chatPage = MessagesPage(
           chat: ChatConversation(
             group: false,
             members: members,
@@ -526,6 +474,8 @@ class HomeController extends GetxController {
             uid: doc!.id,
             messages: [],
             recentTime: Timestamp.now(),
+            createdBy: FirebaseAuth.instance.currentUser!.uid,
+            createdAt: Timestamp.now(),
           ),
         );
 
@@ -552,13 +502,22 @@ class HomeController extends GetxController {
     }
   }
 
-  void saveBuzz(buzzDoc) async {
-    CustomFullScreenDialog.showDialog();
+  void saveBuzz(WeBuzz weBuzz) async {
+    final targetUser = AppController.instance.weBuzzUsers
+        .firstWhere((user) => user.userId == weBuzz.authorId);
     try {
-      await FirebaseService.saveBuzz(buzzDoc)
-          .whenComplete(() => CustomFullScreenDialog.cancleDialog());
+      await FirebaseService.saveBuzz(weBuzz.docId).then(
+        (_) {
+          // If current user is not equal to the post author, send the notification
+          if (weBuzz.authorId != FirebaseAuth.instance.currentUser!.uid) {
+            NotificationServices.sendNotification(
+              notificationType: NotificationType.postSaved,
+              targetUser: targetUser,
+            );
+          }
+        },
+      );
     } catch (e) {
-      CustomFullScreenDialog.cancleDialog();
       log("Error saving post");
       log(e);
     }
@@ -603,6 +562,24 @@ class HomeController extends GetxController {
     }
   }
 
+// update post views
+  void updateBuzzViews(WeBuzz weBuzz) async {
+    try {
+      if (!weBuzz.views.contains(FirebaseAuth.instance.currentUser!.uid)) {
+        // if user has already viewed, do not update the
+        await Future.delayed(const Duration(milliseconds: 300));
+        await FirebaseService.updateBuzz(weBuzz.docId, {
+          'views':
+              FieldValue.arrayUnion([FirebaseAuth.instance.currentUser!.uid]),
+          "viewsCount": FieldValue.increment(1),
+        });
+      }
+    } catch (e) {
+      log("Error updating buzz views");
+      log(e);
+    }
+  }
+
   List<String> reportReasons = [
     'Inappropriate Content',
     'Harassment or Bullying',
@@ -615,30 +592,7 @@ class HomeController extends GetxController {
 
   @override
   void onClose() {
-    scrollController.dispose();
     super.onClose();
-  }
-
-  void updateUsers() async {
-    List<String> userIds = AppController.instance.weBuzzUsers
-        .map((element) => element.userId)
-        .toList();
-
-    for (var id in userIds) {
-      await FirebaseService.firebaseFirestore
-          .collection(firebaseWeBuzzUserCollection)
-          .doc(id)
-          .update({
-        "isSuspended": false,
-        "postNotifications": true,
-        "likeNotifications": true,
-        "commentNotifications": true,
-        "saveNotifications": true,
-        "followNotifications": true,
-        "chatMessageNotifications": true,
-        "blockedUsers": FieldValue.arrayUnion([]),
-        "userBlockNotifications": true,
-      }).then((value) => print("Completed Updated!!!"));
-    }
+    timer.cancel();
   }
 }

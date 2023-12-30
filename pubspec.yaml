@@ -61,6 +61,18 @@ dependencies:
   flutter_spinkit: ^5.2.0
   timeago: ^3.6.0
   swipe_to: ^1.0.2
+  file_picker: ^6.1.1
+  device_preview: ^1.1.0
+  path_provider: ^2.1.1
+  dio: ^5.3.3
+  syncfusion_flutter_pdfviewer: ^24.1.41
+  pdf_viewer_plugin: ^2.0.1
+  webview_flutter: ^4.4.2
+  quiver: ^3.2.1
+  carousel_slider: ^4.2.1
+  smooth_page_indicator: ^1.1.0
+  flutter_local_notifications: ^16.3.0
+  firebase_analytics: ^10.7.4
 
 dev_dependencies:
   flutter_test:
@@ -72,6 +84,13 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^2.0.0
+  flutter_launcher_icons: ^0.13.1
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.png"
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "assets/images/logo.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

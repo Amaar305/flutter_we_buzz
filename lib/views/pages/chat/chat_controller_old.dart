@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
+import 'package:hi_tweet/model/notification_model.dart';
 import 'package:nb_utils/nb_utils.dart';
 
 import '../../../model/message_enum_type.dart';
@@ -24,8 +25,6 @@ class ChatControllerOld extends GetxController {
   RxList<WeBuzzUser> searchUsers = RxList<WeBuzzUser>([]);
   RxBool isTyping = RxBool(false);
   RxBool isSearched = RxBool(false);
-
-  RxList<Message> allMessage = RxList<Message>([]);
 
   late TextEditingController messageEditingController;
   late TextEditingController searchUserEditingController;
@@ -138,7 +137,10 @@ class ChatControllerOld extends GetxController {
 
   // for sending message
   Future<void> sendMessage(
-      WeBuzzUser webuzzUser, String message, MessageType messageType) async {
+    WeBuzzUser webuzzUser,
+    String message,
+    MessageType messageType,
+  ) async {
     // message sending time, also used as id
     final time = DateTime.now().millisecondsSinceEpoch.toString();
 
@@ -155,14 +157,21 @@ class ChatControllerOld extends GetxController {
         'chats/${getConversationId(webuzzUser.userId)}/$firebaseMessageCollection/');
 
     await ref.doc(time).set(msg.toMap()).then((value) {
-      NotificationServices.sendNotificationTokenForChat(
-          webuzzUser, message, messageType);
+      NotificationServices.sendNotification(
+        notificationType: NotificationType.chat,
+        targetUser: webuzzUser,
+        messageType: messageType,
+        msg: message,
+      );
     });
   }
 
   // for adding an user to my_user collection when first message is send
   Future<void> sendFirstMessage(
-      WeBuzzUser webuzzUser, String message, MessageType messageType) async {
+    WeBuzzUser webuzzUser,
+    String message,
+    MessageType messageType,
+  ) async {
     await FirebaseService.firebaseFirestore
         .collection(firebaseWeBuzzCollection)
         .doc(webuzzUser.userId)
@@ -186,8 +195,12 @@ class ChatControllerOld extends GetxController {
         'chats/${getConversationId(webuzzUser.userId)}/$firebaseMessageCollection/');
 
     await ref.doc(time).set(msg.toMap()).then((value) {
-      NotificationServices.sendNotificationTokenForChat(
-          webuzzUser, message, messageType);
+      NotificationServices.sendNotification(
+        notificationType: NotificationType.chat,
+        targetUser: webuzzUser,
+        messageType: messageType,
+        msg: message,
+      );
     });
   }
 

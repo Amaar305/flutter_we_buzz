@@ -10,11 +10,11 @@ class MyDateUtil {
   }
 
   // for getting formatted time for sent & read
-  static String getMessageTime({required String time}) {
+  static String getMessageTime({required String time, required BuildContext context}) {
     final DateTime sent = DateTime.fromMillisecondsSinceEpoch(int.parse(time));
     final DateTime now = DateTime.now();
 
-    final formattedTime = TimeOfDay.fromDateTime(sent).format(Get.context!);
+    final formattedTime = TimeOfDay.fromDateTime(sent).format(context);
     if (now.day == sent.day &&
         now.month == sent.month &&
         now.year == sent.year) {

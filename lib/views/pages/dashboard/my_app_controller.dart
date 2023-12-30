@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -145,13 +144,11 @@ class AppController extends GetxController {
       if (result.data() != null) {
         currentUser = WeBuzzUser.fromDocument(result);
         update();
-        await getFirebaseMessagingToken();
+        await FirebaseService().getFirebaseMessagingToken();
 
         FirebaseService.updateActiveStatus(true);
       } else {
         //  autonatically create user in firestore
-        // get city name
-
         WeBuzzUser weBuzzUser = WeBuzzUser(
           userId: auth.currentUser!.uid,
           email: auth.currentUser!.email!,
@@ -445,6 +442,27 @@ class AppController extends GetxController {
         {
           "directMessagePrivacy": directMessagePrivacy,
         },
+        FirebaseAuth.instance.currentUser!.uid,
+      ).whenComplete(() => CustomFullScreenDialog.cancleDialog());
+      await fetchUserDetails(auth.currentUser!.uid);
+    } catch (e) {
+      CustomFullScreenDialog.cancleDialog();
+
+      log(e);
+      log("Error updating user privacy");
+    }
+    update();
+  }
+
+// update user level
+  void updateUserLevel(String level) async {
+    CustomFullScreenDialog.showDialog();
+    try {
+      await FirebaseService.updateUserData(
+        {
+          "level": level,
+        },
+        FirebaseAuth.instance.currentUser!.uid,
       ).whenComplete(() => CustomFullScreenDialog.cancleDialog());
       await fetchUserDetails(auth.currentUser!.uid);
     } catch (e) {
@@ -464,6 +482,7 @@ class AppController extends GetxController {
         {
           "onlineStatusIndicator": onlineStatusIndicator,
         },
+        FirebaseAuth.instance.currentUser!.uid,
       ).whenComplete(() => CustomFullScreenDialog.cancleDialog());
       await fetchUserDetails(auth.currentUser!.uid);
     } catch (e) {
@@ -482,6 +501,178 @@ class AppController extends GetxController {
       try {
         await _collectionReference.doc(auth.currentUser!.uid).update({
           'notification': currentUser!.notification ? false : true,
+          'chatMessageNotifications': currentUser!.notification ? false : true,
+          'postNotifications': currentUser!.notification ? false : true,
+          'likeNotifications': currentUser!.notification ? false : true,
+          'commentNotifications': currentUser!.notification ? false : true,
+          'followNotifications': currentUser!.notification ? false : true,
+          'userBlockNotifications': currentUser!.notification ? false : true,
+          'saveNotifications': currentUser!.notification ? false : true,
+        }).whenComplete(() {
+          CustomFullScreenDialog.cancleDialog();
+        });
+        await fetchUserDetails(auth.currentUser!.uid);
+        update();
+      } catch (e) {
+        CustomFullScreenDialog.cancleDialog();
+        CustomSnackBar.showSnackBar(
+          context: Get.context,
+          title: "Warning!",
+          message: "Something wen't wrong, try again later!",
+          backgroundColor:
+              Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
+        );
+      }
+      update();
+    }
+  }
+
+// update if user likes or doesn't like push notification for new post
+  void updatePostNotifications() async {
+    if (currentUser != null) {
+      CustomFullScreenDialog.showDialog();
+      try {
+        await _collectionReference.doc(auth.currentUser!.uid).update({
+          'notification': true,
+          'postNotifications': currentUser!.postNotifications ? false : true,
+        }).whenComplete(() {
+          CustomFullScreenDialog.cancleDialog();
+        });
+        await fetchUserDetails(auth.currentUser!.uid);
+        update();
+      } catch (e) {
+        CustomFullScreenDialog.cancleDialog();
+        CustomSnackBar.showSnackBar(
+          context: Get.context,
+          title: "Warning!",
+          message: "Something wen't wrong, try again later!",
+          backgroundColor:
+              Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
+        );
+      }
+      update();
+    }
+  }
+
+// update if user likes or doesn't like push notification for post likes
+  void updateLikeNotifications() async {
+    if (currentUser != null) {
+      CustomFullScreenDialog.showDialog();
+      try {
+        await _collectionReference.doc(auth.currentUser!.uid).update({
+          'notification': true,
+          'likeNotifications': currentUser!.likeNotifications ? false : true,
+        }).whenComplete(() {
+          CustomFullScreenDialog.cancleDialog();
+        });
+        await fetchUserDetails(auth.currentUser!.uid);
+        update();
+      } catch (e) {
+        CustomFullScreenDialog.cancleDialog();
+        CustomSnackBar.showSnackBar(
+          context: Get.context,
+          title: "Warning!",
+          message: "Something wen't wrong, try again later!",
+          backgroundColor:
+              Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
+        );
+      }
+      update();
+    }
+  }
+
+// update if user likes or doesn't like push notification for post comment
+  void updateCommentNotifications() async {
+    if (currentUser != null) {
+      CustomFullScreenDialog.showDialog();
+      try {
+        await _collectionReference.doc(auth.currentUser!.uid).update({
+          'notification': true,
+          'commentNotifications':
+              currentUser!.commentNotifications ? false : true,
+        }).whenComplete(() {
+          CustomFullScreenDialog.cancleDialog();
+        });
+        await fetchUserDetails(auth.currentUser!.uid);
+        update();
+      } catch (e) {
+        CustomFullScreenDialog.cancleDialog();
+        CustomSnackBar.showSnackBar(
+          context: Get.context,
+          title: "Warning!",
+          message: "Something wen't wrong, try again later!",
+          backgroundColor:
+              Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
+        );
+      }
+      update();
+    }
+  }
+
+// update if user likes or doesn't like push notification for follows
+  void updateFollowNotifications() async {
+    if (currentUser != null) {
+      CustomFullScreenDialog.showDialog();
+      try {
+        await _collectionReference.doc(auth.currentUser!.uid).update({
+          'notification': true,
+          'followNotifications':
+              currentUser!.followNotifications ? false : true,
+        }).whenComplete(() {
+          CustomFullScreenDialog.cancleDialog();
+        });
+        await fetchUserDetails(auth.currentUser!.uid);
+        update();
+      } catch (e) {
+        CustomFullScreenDialog.cancleDialog();
+        CustomSnackBar.showSnackBar(
+          context: Get.context,
+          title: "Warning!",
+          message: "Something wen't wrong, try again later!",
+          backgroundColor:
+              Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
+        );
+      }
+      update();
+    }
+  }
+
+// update if user likes or doesn't like push notification for post saved
+  void updateSaveNotifications() async {
+    if (currentUser != null) {
+      CustomFullScreenDialog.showDialog();
+      try {
+        await _collectionReference.doc(auth.currentUser!.uid).update({
+          'notification': true,
+          'saveNotifications': currentUser!.saveNotifications ? false : true,
+        }).whenComplete(() {
+          CustomFullScreenDialog.cancleDialog();
+        });
+        await fetchUserDetails(auth.currentUser!.uid);
+        update();
+      } catch (e) {
+        CustomFullScreenDialog.cancleDialog();
+        CustomSnackBar.showSnackBar(
+          context: Get.context,
+          title: "Warning!",
+          message: "Something wen't wrong, try again later!",
+          backgroundColor:
+              Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
+        );
+      }
+      update();
+    }
+  }
+
+// update if user likes or doesn't like push notification for post saved
+  void updateChatMessageNotifications() async {
+    if (currentUser != null) {
+      CustomFullScreenDialog.showDialog();
+      try {
+        await _collectionReference.doc(auth.currentUser!.uid).update({
+          'notification': true,
+          'chatMessageNotifications':
+              currentUser!.chatMessageNotifications ? false : true,
         }).whenComplete(() {
           CustomFullScreenDialog.cancleDialog();
         });
@@ -631,30 +822,8 @@ class AppController extends GetxController {
     return FirebaseService.firebaseFirestore
         .collection(firebaseWeBuzzUserCollection)
         .snapshots()
-        .map((query) =>
-            query.docs.map((user) => WeBuzzUser.fromDocument(user)).toList());
-  }
-
-// for handling push notification
-  FirebaseMessaging firebaseMessaging = FirebaseMessaging.instance;
-
-// for getting firebase messaging token
-  Future<void> getFirebaseMessagingToken() async {
-    await firebaseMessaging.requestPermission();
-
-    await firebaseMessaging.getToken().then((f) {
-      if (f != null) {
-        log("Push Token: $f");
-        currentUser!.pushToken = f;
-      }
-    });
-    // FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    //   log('Got a message whilst in the foreground!');
-    //   log('Message data: ${message.data}');
-
-    //   if (message.notification != null) {
-    //     log('Message also contained a notification: ${message.notification}');
-    //   }
-    // });
+        .map((query) => query.docs.map((user) {
+              return WeBuzzUser.fromDocument(user);
+            }).toList());
   }
 }

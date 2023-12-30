@@ -15,8 +15,9 @@ class WeBuzz {
   late String buzzType;
   late List<String> hashtags;
   late List<String> replies;
-  late List<String> rebuzzs;
   late List<String> likes;
+  late List<String> views;
+  late List<String> rebuzzs;
   late String? imageUrl;
   late bool isRebuzz;
   final bool isSuspended;
@@ -26,7 +27,9 @@ class WeBuzz {
   int repliesCount;
   int savedCount;
   int reportCount;
+  int viewsCount;
   late bool isPublished;
+  late bool isCampusBuzz;
   late DocumentReference? refrence;
 
   WeBuzz({
@@ -47,11 +50,14 @@ class WeBuzz {
     required this.replies,
     required this.rebuzzs,
     required this.likes,
+    required this.views,
     required this.isRebuzz,
     required this.likesCount,
     required this.repliesCount,
+    required this.isCampusBuzz,
     this.savedCount = 0,
     this.reportCount = 0,
+    this.viewsCount = 0,
     this.refrence,
   });
 
@@ -75,15 +81,18 @@ class WeBuzz {
       replies: List<String>.from(json['replies']),
       rebuzzs: List<String>.from(json['rebuzzs']),
       likes: List<String>.from(json['likes']),
+      views: List<String>.from(json['views']),
       imageUrl: json['imageUrl'],
       isRebuzz: json['rebuzz'],
       reBuzzsCount: json['reBuzzsCount'],
       likesCount: json['likesCount'],
       repliesCount: json['repliesCount'],
+      viewsCount: json['viewsCount'],
       isPublished: json['isPublished'],
       isSuspended: json['isSuspended'],
       savedCount: json['savedCount'],
       refrence: refrence,
+      isCampusBuzz: json['isCampusBuzz'],
     );
   }
 
@@ -113,13 +122,16 @@ class WeBuzz {
       'replies': replies,
       'rebuzzs': rebuzzs,
       'likes': likes,
+      'views': views,
       'rebuzz': isRebuzz,
       'likesCount': likesCount,
       'repliesCount': repliesCount,
       'imageUrl': imageUrl,
       "isPublished": isPublished,
+      "isCampusBuzz": isCampusBuzz,
       "isSuspended": isSuspended,
       "savedCount": savedCount,
+      "viewsCount": viewsCount,
     };
   }
 
@@ -135,6 +147,7 @@ class WeBuzz {
     String? buzzType,
     List<String>? hashtags,
     List<String>? views,
+    List<String>? replies,
     List<String>? rebuzzs,
     List<String>? likes,
     String? imageUrl,
@@ -142,16 +155,20 @@ class WeBuzz {
     bool? isSuspended,
     int? reBuzzsCount,
     int? likesCount,
+    int? viewsCount,
     int? repliesCount,
     int? savedCount,
     int? reportCount,
     bool? isPublished,
+    bool? isCampusBuzz,
   }) {
     return WeBuzz(
       id: id ?? this.id,
       savedCount: savedCount ?? this.savedCount,
+      viewsCount: viewsCount ?? this.viewsCount,
       reportCount: reportCount ?? this.reportCount,
       isPublished: isPublished ?? this.isPublished,
+      isCampusBuzz: isCampusBuzz ?? this.isCampusBuzz,
       isSuspended: isSuspended ?? this.isSuspended,
       docId: docId ?? this.docId,
       authorId: authorId ?? this.authorId,
@@ -162,7 +179,8 @@ class WeBuzz {
       createdAt: createdAt ?? this.createdAt,
       buzzType: buzzType ?? this.buzzType,
       hashtags: hashtags ?? this.hashtags,
-      replies: views ?? replies,
+      replies: replies ?? this.replies,
+      views: views ?? this.views,
       rebuzzs: rebuzzs ?? this.rebuzzs,
       likes: likes ?? this.likes,
       imageUrl: imageUrl ?? this.imageUrl,

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hi_tweet/model/notification_model.dart';
 import 'package:hi_tweet/model/we_buzz_user_model.dart';
 import 'package:hi_tweet/views/utils/custom_snackbar.dart';
 
@@ -48,10 +49,12 @@ class ViewProfileController extends GetxController {
       // Add the current user to the "followers" list of the target user.
       await targetUserRef.update({
         'followers': FieldValue.arrayUnion([currentUserID]),
+      }).then((_) {
+        NotificationServices.sendNotification(
+          notificationType: NotificationType.userFollows,
+          targetUser: targetUser,
+        );
       });
-
-      await NotificationServices.sendNotificationTokenForFollowSytme(
-          targetUser);
 
       CustomFullScreenDialog.cancleDialog();
     } catch (e) {

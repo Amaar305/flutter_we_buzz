@@ -1,6 +1,3 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
-import 'dart:convert';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class WeBuzzUser {
@@ -117,39 +114,39 @@ class WeBuzzUser {
     return <String, dynamic>{
       'userId': userId,
       'email': email,
+      'name': name,
+      'username': username,
+      'lastActive': lastActive,
+      'pushToken': pushToken,
+      'bio': bio,
+      'location': location,
       'isOnline': isOnline,
       'isStaff': isStaff,
       'isAdmin': isAdmin,
+      'isSuspended': isSuspended,
       'notification': notification,
-      'lastSeen': lastSeen,
+      'postNotifications': postNotifications,
+      'likeNotifications': likeNotifications,
+      'commentNotifications': commentNotifications,
+      'saveNotifications': saveNotifications,
+      'followNotifications': followNotifications,
+      'userBlockNotifications': userBlockNotifications,
+      'chatMessageNotifications': chatMessageNotifications,
+      'isCompleteness': isCompleteness,
+      'isVerified': isVerified,
+      'followers': followers,
+      'following': following,
+      'savedBuzz': savedBuzz,
+      'blockedUsers': blockedUsers,
       'createdAt': createdAt,
-      'pushToken': pushToken,
-      'name': name,
-      'bio': bio,
+      'directMessagePrivacy': directMessagePrivacyType,
+      'onlineStatusIndicator': onlineStatusIndicatorType,
       'imageUrl': imageUrl,
       'program': program,
       'level': level,
-      'lastUpdatedPassword': lastUpdatedPassword,
       'phone': phone,
-      'isCompleteness': isCompleteness,
-      'isVerified': isVerified,
-      'location': location,
-      'lastActive': lastActive,
-      "followers": followers,
-      "following": following,
-      "savedBuzz": savedBuzz,
-      "blockedUsers": blockedUsers,
-      'username': username,
-      "directMessagePrivacy": directMessagePrivacyType,
-      "onlineStatusIndicator": onlineStatusIndicatorType,
-      "chatMessageNotifications": chatMessageNotifications,
-      "postNotifications": postNotifications,
-      "likeNotifications": likeNotifications,
-      "commentNotifications": commentNotifications,
-      "followNotifications": followNotifications,
-      "userBlockNotifications": userBlockNotifications,
-      "saveNotifications": saveNotifications,
-      "isSuspended": isSuspended,
+      'lastSeen': lastSeen,
+      'lastUpdatedPassword': lastUpdatedPassword,
     };
   }
 
@@ -245,11 +242,6 @@ class WeBuzzUser {
       userBlockNotifications: map['userBlockNotifications'],
     );
   }
-
-  String toJson() => json.encode(toMap());
-
-  factory WeBuzzUser.fromJson(String source) =>
-      WeBuzzUser.fromMap(json.decode(source) as Map<String, dynamic>);
 
   @override
   String toString() {

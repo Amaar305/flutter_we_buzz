@@ -18,7 +18,6 @@ Future<void> main() async {
 
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.android)
-    
         .then((value) async {
       Get.put(AppController());
 
@@ -47,7 +46,14 @@ Future<void> main() async {
   //   DeviceOrientation.portraitDown,
   // ]);
 
-  // runApp(const MyApp());
-
   runApp(const MyApp());
+
+  // runApp(
+  //   // Enable device preview only in debug mode
+  //   kDebugMode
+  //       ? DevicePreview(
+  //           builder: (context) => const MyApp(),
+  //         )
+  //       : const MyApp(),
+  // );
 }

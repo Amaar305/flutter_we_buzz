@@ -5,6 +5,7 @@ import '../pages/dashboard/my_app_controller.dart';
 import '../utils/constants.dart';
 import '../widgets/home/my_button.dart';
 import '../widgets/home/my_textfield.dart';
+import 'forget_password.dart';
 import 'signup_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -68,11 +69,11 @@ class _LoginPageState extends State<LoginPage> {
                       keyboardType: TextInputType.emailAddress,
                     ),
                     GetBuilder<AppController>(
-                      builder: (cont) {
+                      builder: (_) {
                         return MyTextField(
                           controller: controller.passwordEditingController,
                           hintext: 'password',
-                          obscure: cont.obscureText,
+                          obscureText: controller.obscureText,
                           validator: (value) {
                             if (value == null || value.isEmail) {
                               return 'Please enter password';
@@ -81,7 +82,9 @@ class _LoginPageState extends State<LoginPage> {
                             }
                             return null;
                           },
-                          onTap: () => cont.canOrCannotSee(),
+                          onTap: () {
+                            controller.canOrCannotSee();
+                          },
                         );
                       },
                     ),
@@ -89,7 +92,9 @@ class _LoginPageState extends State<LoginPage> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         TextButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            Get.toNamed(ForgotPasswordPage.routeName);
+                          },
                           child: const Text('Forgot password'),
                         ),
                       ],

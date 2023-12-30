@@ -84,7 +84,7 @@ class _SignUpPageState extends State<SignUpPage> {
                         return MyTextField(
                           controller: controller.passwordEditingController,
                           hintext: 'password',
-                          obscure: cont.obscureText,
+                          obscureText: cont.obscureText,
                           validator: (value) {
                             if (value == null || value.isEmail) {
                               return 'Please enter password';

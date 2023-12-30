@@ -82,7 +82,7 @@ class EditPostPage extends GetView<EditPostController> {
                       ),
                     ),
                     child: const Text(
-                      'Post Now',
+                      'Update Now',
                       style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,

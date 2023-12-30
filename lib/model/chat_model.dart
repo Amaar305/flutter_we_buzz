@@ -1,31 +1,35 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:hi_tweet/model/we_buzz_user_model.dart';
-import 'package:hi_tweet/views/utils/constants.dart';
 
-import 'chat_message.dart';
+import '../views/utils/constants.dart';
+import 'chat_message_model.dart';
+import 'we_buzz_user_model.dart';
 
 class ChatConversation {
   final String uid;
   final String currentUserId;
+  final String createdBy;
+  final Timestamp createdAt;
   final bool group;
   final bool activity;
   final String? groupTitle;
 
   final Timestamp recentTime;
   final List<WeBuzzUser> members;
-  List<ChatMessage> messages;
+  List<MessageModel> messages;
 
-  late final List<WeBuzzUser> _recepeints;
+  late List<WeBuzzUser> _recepeints;
 
   ChatConversation({
     required this.uid,
     required this.currentUserId,
+    required this.createdBy,
     required this.group,
     required this.activity,
     required this.members,
     required this.messages,
     required this.recentTime,
     this.groupTitle,
+    required this.createdAt
   }) {
     _recepeints =
         members.where((user) => user.userId != currentUserId).toList();
@@ -35,14 +39,20 @@ class ChatConversation {
     return _recepeints;
   }
 
+  WeBuzzUser get groupOwner =>
+      members.firstWhere((user) => user.userId == createdBy);
+
   String title() {
     if (!group) {
       return recepeints().first.username;
     } else if (groupTitle != null && group) {
-      return groupTitle!;
+      final gTitile = groupTitle!.length > 25
+          ? "${groupTitle!.substring(0, 25)}..."
+          : groupTitle!;
+      return gTitile;
     } else {
       var names = _recepeints.map((user) => user.username).join(", ");
-      names = names.length > 35 ? names.substring(0, 35) : names;
+      names = names.length > 25 ? "${names.substring(0, 25)}..." : names;
 
       return names;
     }
@@ -52,5 +62,5 @@ class ChatConversation {
       ? _recepeints.first.imageUrl != null
           ? _recepeints.first.imageUrl!
           : defaultProfileImage
-      : 'https://firebasestorage.googleapis.com/v0/b/my-hi-tweet.appspot.com/o/group-chat.png?alt=media&token=442b5b62-4e02-487e-9de4-a7ba4440b5a9&_gl=1*196xeoe*_ga*MTUxNDc4MTA2OC4xNjc1OTQwOTc4*_ga_CW55HF8NVT*MTY5OTI1MjU0Ni4xMTAuMS4xNjk5MjUyNTg1LjIxLjAuMA..';
+      : defaultGroupImage;
 }

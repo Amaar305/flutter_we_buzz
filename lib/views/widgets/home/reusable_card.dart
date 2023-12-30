@@ -20,20 +20,17 @@ import '../bottom_sheet_option.dart';
 
 class ReusableCard extends StatelessWidget {
   const ReusableCard({
-    super.key,
+    Key? key,
     required this.normalWebuzz,
     this.snapShotWebuzz,
-  });
+  }) : super(key: key);
   final WeBuzz normalWebuzz;
   final WeBuzz? snapShotWebuzz;
   @override
   Widget build(BuildContext context) {
-    WeBuzzUser buzzOwner = AppController.instance.weBuzzUsers.firstWhere(
-      (user) => user.userId == normalWebuzz.authorId,
-    );
-    WeBuzzUser currentUser = AppController.instance.weBuzzUsers.firstWhere(
-      (user) => user.userId == FirebaseAuth.instance.currentUser!.uid,
-    );
+    final buzzOwner = getWeBuzzUser(normalWebuzz.authorId);
+    final currentUser = getCurrentUser();
+
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
@@ -49,25 +46,44 @@ class ReusableCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (normalWebuzz.isRebuzz) const Text('Rebuzzed'),
-            if (normalWebuzz.isRebuzz) const SizedBox(height: 10),
+            if (normalWebuzz.isRebuzz) ...[
+              const Text('Rebuzzed'),
+              const SizedBox(height: 10),
+            ],
+
             _topCardHeaderInfo(buzzOwner, currentUser),
-            const SizedBox(
-              height: 10,
-            ),
-            stylizePostContent(normalWebuzz.content),
+
+            const SizedBox(height: 10),
+            stylizePostContent(normalWebuzz.content, context),
             if (normalWebuzz.imageUrl != null &&
                 normalWebuzz.imageUrl!.isNotEmpty)
               _postImage(),
-            const SizedBox(
-              height: 10,
-            ),
+            const SizedBox(height: 10),
             // for hiding action buttons in the reply section
             if (snapShotWebuzz == null) _actionButtons(currentUser),
           ],
         ),
       ),
     );
+  }
+
+  // Extracted method to update text style based on theme
+  TextStyle updateTextStyle(BuildContext context) {
+    return Theme.of(context).textTheme.bodyLarge!;
+  }
+
+  WeBuzzUser getWeBuzzUser(String authorId) {
+    final owner = AppController.instance.weBuzzUsers.firstWhere(
+      (user) => user.userId == authorId,
+    );
+    return owner;
+  }
+
+  WeBuzzUser getCurrentUser() {
+    final owner = AppController.instance.weBuzzUsers.firstWhere(
+      (user) => user.userId == FirebaseAuth.instance.currentUser!.uid,
+    );
+    return owner;
   }
 
   Widget _postImage() {
@@ -92,13 +108,16 @@ class ReusableCard extends StatelessWidget {
           imageBuilder: (context, imageProvider) {
             return ClipRRect(
               borderRadius: BorderRadius.circular(15),
-              child: FullScreenWidget(
-                disposeLevel: DisposeLevel.High,
-                child: Image(
-                  image: imageProvider,
-                  fit: BoxFit.fitWidth,
-                  width: double.maxFinite,
-                  height: 300,
+              child: InteractiveViewer(
+                clipBehavior: Clip.none,
+                child: FullScreenWidget(
+                  disposeLevel: DisposeLevel.High,
+                  child: Image(
+                    image: imageProvider,
+                    fit: BoxFit.fitWidth,
+                    width: double.maxFinite,
+                    height: 300,
+                  ),
                 ),
               ),
             );
@@ -109,76 +128,81 @@ class ReusableCard extends StatelessWidget {
   }
 
   Widget _topCardHeaderInfo(WeBuzzUser buzzOwner, WeBuzzUser currentUser) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            if (buzzOwner.imageUrl == null)
-              FullScreenWidget(
-                disposeLevel: DisposeLevel.High,
-                child: const CircleAvatar(
-                  radius: 15,
-                  backgroundImage:
-                      CachedNetworkImageProvider(defaultProfileImage),
-                ),
-              )
-            else
-              FullScreenWidget(
-                disposeLevel: DisposeLevel.High,
-                child: CircleAvatar(
-                  radius: 15,
-                  backgroundImage:
-                      CachedNetworkImageProvider(buzzOwner.imageUrl!),
-                ),
-              ),
-            const SizedBox(
-              width: 5,
-            ),
-            TextButton(
-              onPressed: () {
-                Get.to(
-                  () => ViewProfilePage(weBuzzUser: buzzOwner),
-                );
-              },
-              child: Text(
-                buzzOwner.name,
-                style: Theme.of(Get.context!).textTheme.displayMedium!.copyWith(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
+    return LayoutBuilder(builder: (context, constraints) {
+      // print('${constraints.maxWidth} is the maxwidth');
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          SizedBox(
+            width: constraints.maxWidth * 0.83,
+            child: Row(
+              children: [
+                if (buzzOwner.imageUrl == null)
+                  FullScreenWidget(
+                    disposeLevel: DisposeLevel.High,
+                    child: const CircleAvatar(
+                      radius: 15,
+                      backgroundImage:
+                          CachedNetworkImageProvider(defaultProfileImage),
                     ),
-              ),
+                  )
+                else
+                  FullScreenWidget(
+                    disposeLevel: DisposeLevel.High,
+                    child: CircleAvatar(
+                      radius: 15,
+                      backgroundImage:
+                          CachedNetworkImageProvider(buzzOwner.imageUrl!),
+                    ),
+                  ),
+                TextButton(
+                  onPressed: () {
+                    Get.to(
+                      () => ViewProfilePage(weBuzzUser: buzzOwner),
+                    );
+                  },
+                  child: Text(
+                    buzzOwner.name,
+                    style: Theme.of(Get.context!)
+                        .textTheme
+                        .displayMedium!
+                        .copyWith(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ),
+                const Icon(
+                  Icons.circle,
+                  size: 5,
+                ),
+                const SizedBox(
+                  width: 5,
+                ),
+                Text(
+                  MethodUtils.formatDate(normalWebuzz.createdAt),
+                  style: Theme.of(Get.context!).textTheme.bodyMedium,
+                )
+              ],
             ),
-            const SizedBox(
-              width: 5,
-            ),
-            const Icon(
-              Icons.circle,
-              size: 5,
-            ),
-            const SizedBox(
-              width: 5,
-            ),
-            Text(
-              MethodUtils.formatDate(normalWebuzz.createdAt),
-              style: Theme.of(Get.context!).textTheme.bodyMedium,
-            )
-          ],
-        ),
-        IconButton(
-          onPressed: () {
-            _showBottomSheet(buzzOwner, currentUser);
-          },
-          icon: const Icon(Icons.more_horiz),
-        ),
-      ],
-    );
+          ),
+          IconButton(
+            onPressed: () {
+              _showBAlertDialog(buzzOwner, currentUser);
+            },
+            icon: const Icon(Icons.more_horiz),
+          ),
+        ],
+      );
+    });
   }
 
   Widget _actionButtons(WeBuzzUser currentUser) {
+    HomeController.instance.updateBuzzViews(normalWebuzz);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
+        // Reply action button
         Row(
           children: [
             IconButton(
@@ -190,24 +214,8 @@ class ReusableCard extends StatelessWidget {
             Text(MethodUtils.formatNumber(normalWebuzz.repliesCount)),
           ],
         ),
-        Row(
-          children: [
-            IconButton(
-              onPressed: () {
-                HomeController.instance.saveBuzz(normalWebuzz.docId);
-              },
-              icon: Icon(
-                currentUser.savedBuzz.contains(normalWebuzz.docId)
-                    ? FluentSystemIcons.ic_fluent_bookmark_filled
-                    : FluentSystemIcons.ic_fluent_bookmark_regular,
-                color: currentUser.savedBuzz.contains(normalWebuzz.docId)
-                    ? Theme.of(Get.context!).colorScheme.primary
-                    : null,
-              ),
-            ),
-            Text(MethodUtils.formatNumber(normalWebuzz.savedCount)),
-          ],
-        ),
+
+        //  Likes action button
         Row(
           children: [
             GetBuilder<HomeController>(builder: (cont) {
@@ -215,7 +223,7 @@ class ReusableCard extends StatelessWidget {
                 final loggedInUserId = FirebaseAuth.instance.currentUser!.uid;
                 return GestureDetector(
                   onTap: () {
-                    cont.updateViews(normalWebuzz, 'likes');
+                    cont.updateViews(normalWebuzz);
                   },
                   child: Icon(
                     normalWebuzz.likes.contains(loggedInUserId)
@@ -236,45 +244,40 @@ class ReusableCard extends StatelessWidget {
             Text(MethodUtils.formatNumber(normalWebuzz.likes.length)),
           ],
         ),
-        // const Row(
-        //   children: [
-        //     Icon(Icons.remove_red_eye_outlined),
-        //     SizedBox(
-        //       width: 5,
-        //     ),
-        //     Text('12M'),
-        //   ],
-        // ),
-        // GetBuilder<HomeController>(
-        //   builder: (control) {
-        //     return Row(
-        //       children: [
-        //         IconButton(
-        //           onPressed: () {
-        //             final bool current = normalWebuzz.rebuzzs
-        //                 .contains(FirebaseAuth.instance.currentUser!.uid);
-        //             control.reTweetBuzz(normalWebuzz, current);
-        //           },
-        //           icon: Icon(
-        //             normalWebuzz.rebuzzs
-        //                     .contains(FirebaseAuth.instance.currentUser!.uid)
-        //                 ? Icons.repeat_one
-        //                 : Icons.repeat,
-        //           ),
-        //         ),
-        //         const SizedBox(
-        //           width: 5,
-        //         ),
-        //         Text(MethodUtils.formatNumber(normalWebuzz.reBuzzsCount)),
-        //       ],
-        //     );
-        //   },
-        // ),
+
+        // Views action button
+        Row(
+          children: [
+            const Icon(Icons.remove_red_eye_outlined),
+            const SizedBox(width: 5),
+            Text(MethodUtils.formatNumber(normalWebuzz.views.length)),
+          ],
+        ),
+
+        // Save action button
+        Row(
+          children: [
+            IconButton(
+              onPressed: () {
+                HomeController.instance.saveBuzz(normalWebuzz);
+              },
+              icon: Icon(
+                currentUser.savedBuzz.contains(normalWebuzz.docId)
+                    ? FluentSystemIcons.ic_fluent_bookmark_filled
+                    : FluentSystemIcons.ic_fluent_bookmark_regular,
+                color: currentUser.savedBuzz.contains(normalWebuzz.docId)
+                    ? Theme.of(Get.context!).colorScheme.primary
+                    : null,
+              ),
+            ),
+            Text(MethodUtils.formatNumber(normalWebuzz.savedCount)),
+          ],
+        ),
       ],
     );
   }
 
-  void _showBottomSheet(WeBuzzUser buzzOwner, WeBuzzUser currentUser) {
+  void _showBAlertDialog(WeBuzzUser buzzOwner, WeBuzzUser currentUser) {
     Get.dialog(
       WillPopScope(
         child: AlertDialog(
@@ -444,6 +447,7 @@ class ReusableCard extends StatelessWidget {
         ),
         content: SizedBox(
           child: DropdownButtonFormField<String>(
+            isExpanded: true,
             items: HomeController.instance.reportReasons.map((reason) {
               return DropdownMenuItem<String>(
                 value: reason,
@@ -476,7 +480,6 @@ class ReusableCard extends StatelessWidget {
           MaterialButton(
             onPressed: () {
               Get.back();
-              print(reasons);
               if (reasons != null && reasons!.isNotEmpty) {
                 HomeController.instance
                     .reportBuzz(normalWebuzz.docId, reasons!);
@@ -494,56 +497,56 @@ class ReusableCard extends StatelessWidget {
       ),
     );
   }
-}
 
-Widget stylizePostContent(String content) {
-  final hashtagRegex = RegExp(r'#\w+');
-  final matches = hashtagRegex.allMatches(content);
+  Widget stylizePostContent(String content, BuildContext context) {
+    final hashtagRegex = RegExp(r'#\w+');
+    final matches = hashtagRegex.allMatches(content);
 
-  final textSpans = <TextSpan>[];
-  int currentStart = 0;
+    final textSpans = <TextSpan>[];
+    int currentStart = 0;
 
-  for (final match in matches) {
-    // Add the text before the hashtag
-    if (match.start > currentStart) {
-      textSpans
-          .add(TextSpan(text: content.substring(currentStart, match.start)));
+    for (final match in matches) {
+      // Add the text before the hashtag
+      if (match.start > currentStart) {
+        textSpans
+            .add(TextSpan(text: content.substring(currentStart, match.start)));
+      }
+
+      // Stylize the hashtag
+      textSpans.add(
+        TextSpan(
+          text: match.group(0),
+          style: TextStyle(
+            color: Theme.of(context)
+                .colorScheme
+                .primary, // Change to your desired color
+            fontWeight: FontWeight.bold,
+            // Add other styling as needed
+          ),
+          recognizer: TapGestureRecognizer()
+            ..onTap = () {
+              Get.to(() => HashTagFilterPage(hashtag: match.group(0)!));
+              // Handle hashtag click event
+              // You can navigate to a hashtag-specific page or perform any other action
+            },
+        ),
+      );
+
+      currentStart = match.end;
     }
 
-    // Stylize the hashtag
-    textSpans.add(
-      TextSpan(
-        text: match.group(0),
-        style: TextStyle(
-          color: Theme.of(Get.context!)
-              .colorScheme
-              .primary, // Change to your desired color
-          fontWeight: FontWeight.bold,
-          // Add other styling as needed
-        ),
-        recognizer: TapGestureRecognizer()
-          ..onTap = () {
-            Get.to(() => HashTagFilterPage(hashtag: match.group(0)!));
-            // Handle hashtag click event
-            // You can navigate to a hashtag-specific page or perform any other action
-          },
+    // Add the remaining text after the last hashtag
+    if (currentStart < content.length) {
+      textSpans.add(TextSpan(text: content.substring(currentStart)));
+    }
+
+    return RichText(
+      text: TextSpan(
+        children: textSpans,
+        style: updateTextStyle(context),
       ),
     );
-
-    currentStart = match.end;
   }
-
-  // Add the remaining text after the last hashtag
-  if (currentStart < content.length) {
-    textSpans.add(TextSpan(text: content.substring(currentStart)));
-  }
-
-  return RichText(
-    text: TextSpan(
-      children: textSpans,
-      style: Theme.of(Get.context!).textTheme.bodyLarge,
-    ),
-  );
 }
 
 bool shouldDisplayDMButton(WeBuzzUser targetUser) {

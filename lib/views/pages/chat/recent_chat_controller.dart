@@ -1,9 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:nb_utils/nb_utils.dart';
 
-import '../../../model/chat_message.dart';
+import '../../../model/chat_message_model.dart';
 import '../../../model/chat_model.dart';
 import '../../../model/we_buzz_user_model.dart';
 import '../../../services/firebase_constants.dart';
@@ -12,16 +11,9 @@ import '../../../services/firebase_service.dart';
 class RecentChatController extends GetxController {
   static RecentChatController instance = Get.find();
 
-  RxList<ChatConversation> chatConversations = RxList<ChatConversation>([]);
+  // FIXME: error when logout because user is null
 
-  @override
-  void onInit() {
-    super.onInit();
-    chatConversations.bindStream(_getChats());
-  }
-
-  Stream<List<ChatConversation>> _getChats() {
-    log('streaming recent user chat!!!!!!!!!!!!!!!!!!!!!!!!!!');
+  Stream<List<ChatConversation>> getChats() {
     return FirebaseService.firebaseFirestore
         .collection(firebaseChatCollection)
         .where('members', arrayContains: FirebaseAuth.instance.currentUser!.uid)
@@ -45,26 +37,28 @@ class RecentChatController extends GetxController {
           }
 
           // last message
-          List<ChatMessage> messages = [];
+          List<MessageModel> messages = [];
           QuerySnapshot chatMessages =
               await FirebaseService().getLastMessageForChat(chatData.id);
           if (chatMessages.docs.isNotEmpty) {
-            log('streaming recent user Message!!!!!!!!!!!!!!!!!!!!!!!!!!');
-
-            messages.add(ChatMessage.fromDocument(chatMessages.docs.first));
+            messages.add(MessageModel.fromDocumentSnapshot(chatMessages.docs.first));
           }
 
           // chat instance
           chats.add(
             ChatConversation(
               uid: chatData.id,
-              currentUserId: FirebaseAuth.instance.currentUser!.uid,
+              currentUserId: FirebaseAuth.instance.currentUser != null
+                  ? FirebaseAuth.instance.currentUser!.uid
+                  : '',
               group: chatData['is_group'],
               activity: chatData['is_activity'],
               members: members,
+              createdAt: chatData['created_at'],
               messages: messages,
+              groupTitle: chatData['group_title'],
+              createdBy: chatData['created_by'],
               recentTime: Timestamp.now(),
-              groupTitle: chatData['group_title']
             ),
           );
         }

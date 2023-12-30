@@ -1,18 +1,127 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:hi_tweet/views/pages/dashboard/my_app_controller.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:get/get.dart';
+import 'package:hi_tweet/model/sponsor/sponsorship.dart';
 import 'package:nb_utils/nb_utils.dart';
 import 'dart:io';
 
-import '../model/chat_message.dart';
+// Models
+import '../model/chat_message_model.dart';
+import '../model/documents/course_model.dart';
+import '../model/documents/program_model.dart';
+import '../model/sponsor/user_sponsor.dart';
 import '../model/we_buzz_user_model.dart';
 import '../model/we_buzz_model.dart';
+
+// Controller
+import '../views/pages/dashboard/my_app_controller.dart';
+
+// Constants Utils
+import '../views/pages/notification/notification_screen.dart';
 import 'firebase_constants.dart';
+
+Future<void> handleBackgroundMessage(RemoteMessage message) async {}
 
 class FirebaseService {
   static final FirebaseFirestore firebaseFirestore = FirebaseFirestore.instance;
+
+// for handling push notification
+  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+
+  final _androidChannel = const AndroidNotificationChannel(
+    'high_importance_channel',
+    'High Impoortance Notifications',
+    description: 'This channel is used for important notifications',
+    importance: Importance.defaultImportance,
+  );
+
+  final _localNotifications = FlutterLocalNotificationsPlugin();
+  void handleMessage(RemoteMessage? message) {
+    if (message == null) return;
+
+    Get.toNamed(NotificationsScreen.routeName, arguments: message);
+  }
+
+  Future iniLocalNotifications() async {
+    const iOS = DarwinInitializationSettings();
+    const android = AndroidInitializationSettings('@drawable/ic_launcher');
+    const settings = InitializationSettings(android: android, iOS: iOS);
+
+    await _localNotifications.initialize(
+      settings,
+      onDidReceiveNotificationResponse: (details) {
+        final message = RemoteMessage.fromMap(jsonDecode(details.payload!));
+        handleMessage(message);
+      },
+    );
+    final platform = _localNotifications.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+
+    await platform?.createNotificationChannel(_androidChannel);
+  }
+
+  Future initPushNotification() async {
+    await FirebaseMessaging.instance
+        .setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    FirebaseMessaging.instance.getInitialMessage().then(handleMessage);
+    FirebaseMessaging.onMessageOpenedApp.listen(handleMessage);
+    FirebaseMessaging.onBackgroundMessage(handleBackgroundMessage);
+    FirebaseMessaging.onMessage.listen(
+      (message) {
+        final notification = message.notification;
+        if (notification == null) return;
+        _localNotifications.show(
+          notification.hashCode,
+          notification.title,
+          notification.body,
+          NotificationDetails(
+            android: AndroidNotificationDetails(
+              _androidChannel.id,
+              _androidChannel.name,
+              channelDescription: _androidChannel.description,
+              icon: '@drawable/ic_launcher',
+            ),
+          ),
+          payload: jsonEncode(message.toMap()),
+        );
+      },
+    );
+  }
+
+// for getting firebase messaging token
+  Future<void> getFirebaseMessagingToken() async {
+    await _firebaseMessaging.requestPermission();
+
+    await _firebaseMessaging.getToken().then((f) {
+      if (f != null) {
+        log("Push Token: $f");
+        AppController.instance.currentUser!.pushToken = f;
+        initPushNotification();
+        iniLocalNotifications();
+      }
+    });
+
+    FirebaseMessaging.onBackgroundMessage(handleBackgroundMessage);
+    // FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    //   log('Got a message whilst in the foreground!');
+    //   log('Message data: ${message.data}');
+
+    //   if (message.notification != null) {
+    //     log('Message also contained a notification: ${message.notification}');
+    //   }
+    // });
+  }
 
   static Future createUserInFirestore(
     WeBuzzUser campusBuzzUser,
@@ -26,6 +135,52 @@ class FirebaseService {
     } catch (e) {
       debugPrint(e.toString());
     }
+  }
+
+// change password
+  Future<bool?> updatePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
+    if (FirebaseAuth.instance.currentUser != null) {
+      try {
+        FirebaseAuth auth = FirebaseAuth.instance;
+        User user = auth.currentUser!;
+
+        // Reauthenticate the user by confirming their current password
+        AuthCredential credential = EmailAuthProvider.credential(
+          email: user.email!,
+          password: currentPassword,
+        );
+
+        await user.reauthenticateWithCredential(credential);
+
+        // Update the password
+        await user.updatePassword(newPassword);
+
+        log("Password updated successfully");
+        return true;
+      } on FirebaseAuthException catch (e) {
+        // Handle errors, such as wrong current password or network issues
+        // Provide feedback to the user
+        log("Error updating password: $e");
+
+        if (e.code.contains('INVALID_LOGIN_CREDENTIALS')) {
+          toast('Current password is not current');
+        } else {
+          toast(e.message);
+        }
+
+        return false;
+      }
+    } else {
+      return null;
+    }
+  }
+
+// Reset password
+  static Future<void> resetPassword(String email) async {
+    await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
   }
 
 // Create buzz
@@ -144,6 +299,28 @@ class FirebaseService {
     }
   }
 
+  static Future<String?> uploadFile(
+    File doc,
+    String folderName,
+    String format,
+  ) async {
+    String docUrl;
+
+    try {
+      Reference storageReference = FirebaseStorage.instance
+          .ref()
+          .child("$folderName/${DateTime.now()}.$format");
+      UploadTask uploadTask = storageReference.putFile(doc);
+      TaskSnapshot taskSnapshot = await uploadTask.whenComplete(() => null);
+
+      docUrl = await taskSnapshot.ref.getDownloadURL();
+      return docUrl;
+    } catch (e) {
+      log("Error uploading file: $e");
+      return null;
+    }
+  }
+
   static Future<void> deleteImage(String imageUrl) async {
     try {
       Reference storageReference =
@@ -156,7 +333,7 @@ class FirebaseService {
   }
 
 // get all webuzz users
-  Future<QuerySnapshot> getUser({String? name}) {
+  static Future<QuerySnapshot> getAllUsers({String? name}) {
     Query query = firebaseFirestore.collection(firebaseWeBuzzUserCollection);
     if (name != null) {
       query = query
@@ -192,10 +369,11 @@ class FirebaseService {
   }
 
 // update user data
-  static Future<void> updateUserData(Map<String, dynamic> userData) async {
+  static Future<void> updateUserData(
+      Map<String, dynamic> userData, String userId) async {
     FirebaseService.firebaseFirestore
         .collection(firebaseWeBuzzUserCollection)
-        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .doc(userId)
         .update(userData);
   }
 
@@ -203,14 +381,14 @@ class FirebaseService {
   static Future<void> blockedUser(String targetUser) async {
     await updateUserData({
       "blockedUsers": FieldValue.arrayUnion([targetUser]),
-    });
+    }, FirebaseAuth.instance.currentUser!.uid);
   }
 
 // Unblock user
   static Future<void> unBlockedUser(String targetUser) async {
     await updateUserData({
       "blockedUsers": FieldValue.arrayRemove([targetUser]),
-    });
+    }, FirebaseAuth.instance.currentUser!.uid);
   }
 
   Stream<QuerySnapshot> getChatForUser(String uid) {
@@ -250,16 +428,18 @@ class FirebaseService {
   }
 
 // Send chat message
-  static Future<void> sendChatMessageToChat(
-      ChatMessage message, String chatID) async {
+  static Future<String?> sendChatMessageToChat(
+      MessageModel message, String chatID) async {
     try {
-      await firebaseFirestore
+      var result = await firebaseFirestore
           .collection(firebaseChatCollection)
           .doc(chatID)
           .collection(firebaseMessageCollection)
           .add(message.toMap());
+      return result.id;
     } catch (e) {
       log(e);
+      return null;
     }
   }
 
@@ -275,9 +455,42 @@ class FirebaseService {
     }
   }
 
-// Delete a specific chat
+// Exit a group chat
+  static Future<void> exitGroupChat(String chatID, String userID) async {
+    try {
+      await updateChatData(chatID, {
+        'members': FieldValue.arrayRemove([userID])
+      });
+    } catch (e) {
+      log(e);
+    }
+  }
+
+// Add a user in group chat
+  static Future<void> addUserInGroupChat(String chatID, String userID) async {
+    try {
+      final members = await firebaseFirestore
+          .collection(firebaseChatCollection)
+          .doc(chatID)
+          .get();
+
+      if (members['members'].contains(userID)) {
+        toast('Users already exist');
+      }
+
+      await updateChatData(chatID, {
+        'members': FieldValue.arrayUnion([userID])
+      });
+    } catch (e) {
+      log(e);
+    }
+  }
+
+// Delete a specific chat message
   static Future<void> deleteChatMessage(
-      ChatMessage message, String chatID) async {
+    MessageModel message,
+    String chatID,
+  ) async {
     try {
       await firebaseFirestore
           .collection(firebaseChatCollection)
@@ -305,6 +518,24 @@ class FirebaseService {
     }
   }
 
+// Update a specific chat message
+  static Future<void> updateChatMessageData(
+    String chatID,
+    String messageDoc,
+    Map<String, dynamic> chatData,
+  ) async {
+    try {
+      await firebaseFirestore
+          .collection(firebaseChatCollection)
+          .doc(chatID)
+          .collection(firebaseMessageCollection)
+          .doc(messageDoc)
+          .update(chatData);
+    } catch (e) {
+      log(e);
+    }
+  }
+
 // update message read
   Future<void> updateMessageReadStatus(
       String chatID, ChatMessage message) async {
@@ -319,7 +550,8 @@ class FirebaseService {
   }
 
   static Future<DocumentReference?> createChat(
-      Map<String, dynamic> data) async {
+    Map<String, dynamic> data,
+  ) async {
     try {
       DocumentReference chat =
           await firebaseFirestore.collection(firebaseChatCollection).add(data);
@@ -328,5 +560,54 @@ class FirebaseService {
       log(e);
       return null;
     }
+  }
+
+// Make user a staff
+  static Future<void> makeMeStaff(WeBuzzUser user, bool staff) async {
+    try {
+      await updateUserData(
+        {
+          "isStaff": staff,
+        },
+        user.userId,
+      );
+    } catch (e) {
+      log("Error trying to make ${user.name} a staff");
+      log(e);
+    }
+  }
+
+// Create course
+  static Future<void> createCourse(CourseModel courseModel) async {
+    try {
+      await firebaseFirestore
+          .collection(firebaseCoursesCollection)
+          .add(courseModel.toJson());
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+  }
+
+// Create Program
+  static Future<void> createProgram(ProgramModel programModel) async {
+    try {
+      await firebaseFirestore
+          .collection(firebaseProgramsCollection)
+          .add(programModel.toJson());
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+  }
+
+  static Future<void> createSponsorUser(UserSponsor userSponsor) async {
+    await firebaseFirestore
+        .collection(firebaseSponsorUserCollection)
+        .add(userSponsor.toMap());
+  }
+
+  static Future<void> createSponsorship(Sponsorship sponsorship) async {
+    await firebaseFirestore
+        .collection(firebaseSponsorshipCollection)
+        .add(sponsorship.toMap());
   }
 }

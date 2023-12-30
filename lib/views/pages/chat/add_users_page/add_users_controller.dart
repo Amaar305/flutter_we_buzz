@@ -2,23 +2,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hi_tweet/views/pages/chat/messages/messages_page.dart';
 import 'package:nb_utils/nb_utils.dart';
 
-import '../../../../model/chat_message.dart';
+import '../../../../model/chat_message_model.dart';
 import '../../../../model/chat_model.dart';
 import '../../../../model/we_buzz_user_model.dart';
 import '../../../../services/firebase_service.dart';
 import '../../../utils/custom_full_screen_dialog.dart';
 import '../../dashboard/my_app_controller.dart';
-import '../chat_page.dart';
 
 class AddUsersController extends GetxController {
+  static final AddUsersController instance = Get.find();
   // for searching users
   late TextEditingController searchEditingController;
-
-// device size
-  late double deviceHeight;
-  late double deviceWidth;
 
   late List<WeBuzzUser> _selectedUser;
   // ignore: non_constant_identifier_names
@@ -26,11 +23,25 @@ class AddUsersController extends GetxController {
 
   String _groupTitle = '';
 
+  var isShearch = false.obs;
+
+  int index = 2;
+
+  List<String> titles = [
+    'Mutual',
+    'Following',
+    'Followers',
+  ];
+
+  void updateIndex(int index) {
+    this.index = index;
+    log(index);
+    update();
+  }
+
   @override
   void onInit() {
     super.onInit();
-    deviceHeight = MediaQuery.of(Get.context!).size.height;
-    deviceWidth = MediaQuery.of(Get.context!).size.width;
 
     searchEditingController = TextEditingController();
     WeBuzzUsers = AppController.instance.weBuzzUsers;
@@ -45,7 +56,6 @@ class AddUsersController extends GetxController {
     _groupTitle = name;
   }
 
-  void getUser({String? name}) async {}
 
   void updateSelectedUser(WeBuzzUser user) {
     if (_selectedUser.contains(user)) {
@@ -59,10 +69,8 @@ class AddUsersController extends GetxController {
 
   void createChat() async {
     try {
-      final String currentUserID = FirebaseAuth.instance.currentUser!.uid;
-      // create chat
-      // List<String> membersIDs =
-      //     _selectedUser.map((user) => user.userId).toList();
+      // current user's id
+      String currentUserID = FirebaseAuth.instance.currentUser!.uid;
 
       List<String> membersIDs = [];
 
@@ -71,6 +79,8 @@ class AddUsersController extends GetxController {
         membersID: membersIDs,
         currentUserID: currentUserID,
       );
+
+      // Add current user's id to the membersIDs list
       membersIDs.add(currentUserID);
 
       if (dmPrivacy) {
@@ -106,12 +116,11 @@ class AddUsersController extends GetxController {
             }
 
             // last message
-            List<ChatMessage> messages = [];
-            QuerySnapshot chatMessages = await FirebaseService()
-                .getLastMessageForChat(chatDocument.id)
-                .whenComplete(() => CustomFullScreenDialog.cancleDialog());
+            List<MessageModel> messages = [];
+            QuerySnapshot chatMessages =
+                await FirebaseService().getLastMessageForChat(chatDocument.id);
             if (chatMessages.docs.isNotEmpty) {
-              messages.add(ChatMessage.fromDocument(chatMessages.docs.first));
+              messages.add(MessageModel.fromDocumentSnapshot(chatMessages.docs.first));
             }
 
             ChatConversation chatConversation = ChatConversation(
@@ -123,14 +132,17 @@ class AddUsersController extends GetxController {
               messages: messages,
               recentTime: chatDocument['recent_time'],
               groupTitle: chatDocument['group_title'],
+              createdBy: chatDocument['created_by'],
+              createdAt: chatDocument['created_at'],
             );
             log('Successs Alhamdulillah');
             // set selected users to empty list
             _selectedUser = [];
             update();
+            CustomFullScreenDialog.cancleDialog();
 
             // Navigate to the chat page
-            Get.to(() => ChatPage(chat: chatConversation));
+            Get.to(() => MessagesPage(chat: chatConversation));
           } else {
             log('Chat does not exists.');
             // Creating chat conversation data in firestore database for new chat
@@ -140,7 +152,9 @@ class AddUsersController extends GetxController {
                 "is_activity": false,
                 "members": membersIDs,
                 "recent_time": FieldValue.serverTimestamp(),
-                "group_title": null
+                "created_at": Timestamp.now(),
+                "created_by": FirebaseAuth.instance.currentUser!.uid,
+                "group_title": null,
               },
             );
             log(isGroup);
@@ -159,7 +173,7 @@ class AddUsersController extends GetxController {
             }
 
             // Preparing the chat page before navigating
-            ChatPage chatPage = ChatPage(
+            MessagesPage chatPage = MessagesPage(
               chat: ChatConversation(
                 group: isGroup,
                 members: members,
@@ -168,6 +182,8 @@ class AddUsersController extends GetxController {
                 uid: doc!.id,
                 messages: [],
                 recentTime: Timestamp.now(),
+                createdBy: FirebaseAuth.instance.currentUser!.uid,
+                createdAt: Timestamp.now(),
               ),
             );
 
@@ -181,19 +197,22 @@ class AddUsersController extends GetxController {
             Get.to(() => chatPage);
           }
         } else {
-          _showBottomSheet(
+          _showAlertDialog(
             onChanged: setGroupTitle,
             onPressed: () async {
+              CustomFullScreenDialog.showDialog();
               // Creating chat conversation data in firestore database
               DocumentReference? doc = await FirebaseService.createChat(
                 {
                   "is_group": isGroup,
-                  "is_activity": false,
+                  "created_at": Timestamp.now(),
                   "members": membersIDs,
                   "recent_time": FieldValue.serverTimestamp(),
                   "group_title": chatGroupTitle,
+                  "created_by": FirebaseAuth.instance.currentUser!.uid,
+                  "is_activity": false,
                 },
-              );
+              ).whenComplete(() => CustomFullScreenDialog.cancleDialog());
 
               // Navigate to Chat Page
               List<WeBuzzUser> members = [];
@@ -209,7 +228,7 @@ class AddUsersController extends GetxController {
               }
 
               // Preparing the chat page before navigating
-              ChatPage chatPage = ChatPage(
+              MessagesPage chatPage = MessagesPage(
                 chat: ChatConversation(
                   group: isGroup,
                   members: members,
@@ -219,6 +238,8 @@ class AddUsersController extends GetxController {
                   messages: [],
                   recentTime: Timestamp.now(),
                   groupTitle: chatGroupTitle,
+                  createdBy: currentUserID,
+                  createdAt: Timestamp.now(),
                 ),
               );
 
@@ -233,7 +254,9 @@ class AddUsersController extends GetxController {
           );
         }
       } else {
-        toast('You cannot DM or create Group chat with those users');
+        if (selectedUser.length > 1) {
+          toast('You cannot create a Group chat with some of those users');
+        }
       }
     } catch (e) {
       CustomFullScreenDialog.cancleDialog();
@@ -243,61 +266,156 @@ class AddUsersController extends GetxController {
     }
   }
 
-  void _showBottomSheet(
-      {required void Function()? onPressed, void Function(String)? onChanged}) {
-    Get.dialog(WillPopScope(
-      child: AlertDialog(
-        contentPadding:
-            const EdgeInsets.only(left: 24, right: 24, top: 20, bottom: 10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Icon(
-              Icons.message,
-              color: Theme.of(Get.context!).colorScheme.primary,
-            ),
-            const Text('Group Title'),
-          ],
+
+
+// Block user
+  void blockedUsers(WeBuzzUser targetUser) async {
+    CustomFullScreenDialog.showDialog();
+    try {
+      await FirebaseService.blockedUser(targetUser.userId).whenComplete(() {
+        CustomFullScreenDialog.cancleDialog();
+        toast(' Successifully blocked ${targetUser.name}');
+      });
+    } catch (e) {
+      log("Error blocking user");
+      log(e);
+    }
+  }
+
+// Unblock user
+  void unBlockedUsers(WeBuzzUser targetUser) async {
+    CustomFullScreenDialog.showDialog();
+    try {
+      await FirebaseService.unBlockedUser(targetUser.userId).whenComplete(() {
+        CustomFullScreenDialog.cancleDialog();
+        toast(' Successifully unblocked ${targetUser.name}');
+      });
+    } catch (e) {
+      log("Error blocking user");
+      log(e);
+    }
+  }
+
+  void showDiaologForBlockingUser(WeBuzzUser targetUser,
+      {void Function()? onPressed}) {
+    Get.dialog(
+      AlertDialog(
+        title: const Text(
+          'Block User',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        content: TextFormField(
-          onChanged: onChanged,
-          decoration: InputDecoration(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(15),
-            ),
-          ),
-          validator: (value) {
-            if (value!.isEmpty) {
-              return 'Group title cannot be null';
-            } else if (value.length > 15) {
-              return 'Maximum of 15 characters only';
-            }
-            return null;
-          },
+        content: Text(
+          '\nBy blocking ${targetUser.name} you\'ll no longer gonna recieve massegas and any notifications from this user!.',
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w200),
         ),
         actions: [
           MaterialButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Cancle',
+            onPressed: () {
+              Get.back();
+            },
+            child: const Text(
+              'Cancel',
               style: TextStyle(
-                  fontSize: 16,
-                  color: Theme.of(Get.context!).colorScheme.primary),
+                fontWeight: FontWeight.w400,
+                fontSize: 15,
+              ),
             ),
           ),
-          MaterialButton(
-            onPressed: onPressed,
-            child: Text(
-              'Create',
-              style: TextStyle(
-                  fontSize: 16,
-                  color: Theme.of(Get.context!).colorScheme.primary),
-            ),
-          ),
+          GetX<AppController>(
+            builder: (controller) {
+              var unblocked = controller.weBuzzUsers
+                  .firstWhere((user) =>
+                      user.userId == FirebaseAuth.instance.currentUser!.uid)
+                  .blockedUsers
+                  .contains(targetUser.userId);
+              return MaterialButton(
+                onPressed: () {
+                  Get.back();
+                  if (unblocked) {
+                    unBlockedUsers(targetUser);
+                  } else {
+                    blockedUsers(targetUser);
+                  }
+                  if (onPressed != null) {
+                    onPressed();
+                  }
+                },
+                child: Text(
+                  unblocked ? 'Unblock' : 'Block',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w400,
+                    fontSize: 15,
+                  ),
+                ),
+              );
+            },
+          )
         ],
       ),
-      onWillPop: () => Future.value(false),
-    ));
+    );
+  }
+
+  void _showAlertDialog({
+    required void Function()? onPressed,
+    void Function(String)? onChanged,
+  }) {
+    Get.dialog(
+      WillPopScope(
+        child: AlertDialog(
+          contentPadding:
+              const EdgeInsets.only(left: 24, right: 24, top: 20, bottom: 10),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Icon(
+                Icons.message,
+                color: Theme.of(Get.context!).colorScheme.primary,
+              ),
+              const Text('Group Title'),
+            ],
+          ),
+          content: TextFormField(
+            onChanged: onChanged,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+            ),
+            validator: (value) {
+              if (value!.isEmpty) {
+                return 'Group title cannot be null';
+              } else if (value.length > 15) {
+                return 'Maximum of 15 characters only';
+              }
+              return null;
+            },
+          ),
+          actions: [
+            MaterialButton(
+              onPressed: () => Get.back(),
+              child: Text(
+                'Cancle',
+                style: TextStyle(
+                    fontSize: 16,
+                    color: Theme.of(Get.context!).colorScheme.primary),
+              ),
+            ),
+            MaterialButton(
+              onPressed: onPressed,
+              child: Text(
+                'Create',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Theme.of(Get.context!).colorScheme.primary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        onWillPop: () => Future.value(false),
+      ),
+    );
   }
 }
 
@@ -322,7 +440,9 @@ bool canCreateGroupChat({
       membersID.add(user.userId);
     } else {
       // Handle the case where the user doesn't meet the DM privacy criteria
-      toast('the user doesn\'t meet the DM ');
+      if (selectedUsers.length == 1) {
+        toast('You cannot DM ${user.username}');
+      }
       return false;
     }
   }

@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -77,8 +78,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     validator: (value) {
                       if (value!.isEmpty) {
                         return 'Name cannot be empty!';
-                      } else if (value.length > 20 || value.length < 10) {
-                        return 'Name should not be > 20 characters and < 10 characters!';
+                      }
+                      if (value.length < 6 || value.length > 12) {
+                        return 'Name should be > 6 and < 12 characters';
                       }
                       return null;
                     },
@@ -88,17 +90,43 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     hintext: 'Phone',
                     keyboardType: TextInputType.phone,
                     validator: (value) {
-                      // TODO gotta update this
-                      if (value!.length > 12) {
+                      if (value!.isEmpty) {
+                        return 'Phone cannot be empty!';
+                      }
+                      if (value.length < 11 || value.length > 11) {
                         return 'Invalid phone number!';
                       }
                       return null;
                     },
                   ),
-                  MyTextField(
-                    controller: controller.lavelEditingController!,
-                    hintext: 'Level',
-                    keyboardType: TextInputType.number,
+                  const SizedBox(height: 12),
+                  GetBuilder<AppController>(
+                    builder: (controller) {
+                      final me = controller.weBuzzUsers.firstWhere((user) =>
+                          user.userId ==
+                          FirebaseAuth.instance.currentUser!.uid);
+                      return DropdownButtonFormField<String>(
+                        value: me.level == null
+                            ? null
+                            : _levels.contains(me.level)
+                                ? me.level
+                                : null,
+                        items: _levels.map((level) {
+                          return DropdownMenuItem<String>(
+                            value: level,
+                            child: Text(level),
+                          );
+                        }).toList(),
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        onChanged: (value) {
+                          controller.lavelEditingController!.text = value!;
+                        },
+                      );
+                    },
                   ),
                   const SizedBox(height: 12),
                   MyButton(
@@ -122,3 +150,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 }
+
+final List<String> _levels = [
+  '100',
+  '200',
+  '300',
+  '400',
+  '500',
+];

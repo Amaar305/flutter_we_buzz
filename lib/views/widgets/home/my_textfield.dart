@@ -5,14 +5,14 @@ class MyTextField extends StatelessWidget {
     super.key,
     required this.controller,
     required this.hintext,
-    this.obscure,
+    this.obscureText,
     this.validator,
     this.onTap,
     this.keyboardType,
   });
   final TextEditingController? controller;
   final String hintext;
-  final bool? obscure;
+  final bool? obscureText;
   final String? Function(String?)? validator;
   final void Function()? onTap;
   final TextInputType? keyboardType;
@@ -20,9 +20,6 @@ class MyTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      // margin: obscure!
-      //     ? const EdgeInsets.symmetric(vertical: 15)
-      //     : const EdgeInsets.fromLTRB(0, 30, 0, 0),
       margin: const EdgeInsets.fromLTRB(0, 25, 0, 0),
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
@@ -38,18 +35,16 @@ class MyTextField extends StatelessWidget {
             vertical: 15,
             horizontal: 20,
           ),
-          suffix: obscure != null
-              ? GestureDetector(
-                  onTap: onTap,
-                  child: Icon(
-                    obscure!
-                        ? Icons.remove_red_eye_outlined
-                        : Icons.highlight_off_rounded,
-                  ),
-                )
-              : null,
+          suffix: GestureDetector(
+            onTap: onTap,
+            child: obscureText != null
+                ? obscureText!
+                    ? const Icon(Icons.highlight_off_rounded)
+                    : const Icon(Icons.remove_red_eye_outlined)
+                : const SizedBox(),
+          ),
         ),
-        obscureText: obscure ?? false,
+        obscureText: obscureText != null && !obscureText!,
         validator: validator,
         keyboardType: keyboardType,
       ),

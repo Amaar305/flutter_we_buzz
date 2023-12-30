@@ -55,13 +55,13 @@ class CustomTextFormField extends StatelessWidget {
 class CustomTextField extends StatelessWidget {
   const CustomTextField({
     super.key,
-    required this.onEditingComplete,
+    required this.onChanged,
     required this.hintText,
     required this.obscureText,
     required this.controller,
     this.iconData,
   });
-  final Function(String) onEditingComplete;
+  final void Function(String)? onChanged;
   final String hintText;
   final bool obscureText;
   final TextEditingController controller;
@@ -69,18 +69,22 @@ class CustomTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      onEditingComplete: () => onEditingComplete(controller.text),
-      obscureText: obscureText,
-      decoration: InputDecoration(
-        fillColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-        filled: true,
-        border: OutlineInputBorder(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: TextField(
+        controller: controller,
+        onChanged: onChanged,
+        obscureText: obscureText,
+        decoration: InputDecoration(
+          fillColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+          filled: true,
+          border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.0),
-            borderSide: BorderSide.none),
-        hintText: hintText,
-        prefixIcon: Icon(iconData),
+            borderSide: BorderSide.none,
+          ),
+          hintText: hintText,
+          prefixIcon: Icon(iconData),
+        ),
       ),
     );
   }

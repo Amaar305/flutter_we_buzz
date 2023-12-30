@@ -1,10 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hi_tweet/views/shimmer/home_page_shimmer.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-import '../../widgets/custom_app_bar.dart';
-import '../../widgets/home/my_search_bar.dart';
-import '../../widgets/home/reusable_card.dart';
+import '../../widgets/home/explore.dart';
+import '../../widgets/home/feeds.dart';
+import '../dashboard/my_app_controller.dart';
+import '../search/search_page.dart';
+import '../users/users._list_page.dart';
 import 'home_controller.dart';
 
 class HomePage extends GetView<HomeController> {
@@ -15,79 +18,68 @@ class HomePage extends GetView<HomeController> {
   Widget build(BuildContext context) {
     final deviceHeight = MediaQuery.of(context).size.height;
     final deviceWidth = MediaQuery.of(context).size.width;
-    return _builtUI(deviceWidth, deviceHeight);
+    return _buildUI(deviceWidth, deviceHeight);
   }
 
-  Widget _builtUI(double deviceWidth, double deviceHeight) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: deviceWidth * 0.03,
-        vertical: deviceHeight * 0.02,
-      ),
-      width: deviceWidth * 0.97,
-      child: Column(
-        mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          _appBar(),
-          _webuzzList(),
-        ],
+  Widget _buildUI(double deviceWidth, double deviceHeight) {
+    return Scaffold(
+      appBar: _buildAppBar(),
+      body: Container(
+        padding: EdgeInsets.symmetric(horizontal: deviceWidth * 0.03),
+        child: PageView(
+          scrollDirection: Axis.horizontal,
+          children: [
+            ExploreBuzz(controller: controller),
+            Feeds(controller: controller),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _appBar() {
-    return GetBuilder<HomeController>(
-      builder: (_) {
-        return AnimatedCrossFade(
-          duration: const Duration(milliseconds: 150),
-          crossFadeState: controller.isSearched.isTrue
-              ? CrossFadeState.showSecond
-              : CrossFadeState.showFirst,
-          firstChild: CustomAppBar(
-            'WeBuzz',
-            primaryAction: IconButton(
+  AppBar _buildAppBar() {
+    return AppBar(
+      title: Text(
+        'Webuzz',
+        style: GoogleFonts.pacifico(
+          textStyle: const TextStyle(
+            fontSize: 24.0,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      actions: [
+        if (FirebaseAuth.instance.currentUser != null)
+          // if current user is not null
+
+          if (AppController.instance.weBuzzUsers
+              .firstWhere((user) =>
+                  user.userId == FirebaseAuth.instance.currentUser!.uid)
+              .isStaff)
+            // if current user is a staff, show this icon
+            IconButton(
               onPressed: () {
-                controller.search();
+                Get.toNamed(UsersPageList.routeName);
               },
-              icon: Icon(
-                controller.isSearched.isFalse ? Icons.search : Icons.cancel,
+              icon: const Icon(
+                Icons.person,
               ),
             ),
+        IconButton(
+          icon: const Icon(Icons.notifications),
+          onPressed: () {
+            // Add your notification button logic here
+          },
+        ),
+        IconButton(
+          onPressed: () {
+            Get.toNamed(SearcUserhPage.routeName);
+          },
+          icon: const Icon(
+            Icons.search,
           ),
-          secondChild: AppbarSearchField(controller: controller),
-          firstCurve: Curves.easeInOut,
-          secondCurve: Curves.easeIn,
-        );
-      },
-    );
-  }
-
-  Widget _webuzzList() {
-    return Expanded(
-      child: Obx(
-        () {
-          if (controller.weeBuzzItems.isNotEmpty) {
-            return ListView.builder(
-              controller: controller.scrollController,
-              itemCount: controller.weeBuzzItems
-                  .where((buzz) => buzz.isPublished)
-                  .length,
-              itemBuilder: (context, index) {
-                return ReusableCard(
-                  normalWebuzz: controller.weeBuzzItems
-                      .where((buzz) => buzz.isPublished)
-                      .toList()[index],
-                );
-                // }
-              },
-            );
-          } else {
-            return const HomePageShimmer();
-          }
-        },
-      ),
+        ),
+      ],
     );
   }
 }

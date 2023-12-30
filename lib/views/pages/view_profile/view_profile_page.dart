@@ -15,6 +15,7 @@ import 'package:nb_utils/nb_utils.dart';
 import '../../utils/method_utils.dart';
 import '../../widgets/profile/profile_option_setting.dart';
 import '../../widgets/profile/profile_tab_widget.dart';
+import '../chat/add_users_page/add_users_controller.dart';
 import '../home/home_controller.dart';
 import 'view_profile_controller.dart';
 
@@ -35,56 +36,91 @@ class ViewProfilePage extends StatelessWidget {
               FirebaseAuth.instance.currentUser!.uid
           ? Obx(
               () {
-                return TextButton.icon(
-                  style: TextButton.styleFrom(
-                    backgroundColor: kPrimary.withOpacity(0.8),
-                  ),
-                  label: Text(
-                    // viewProfileController.currentWeBuxxUser.value!.following
-                    //         .contains(weBuzzUser.userId)
-                    //     ? 'UnFollow'
-                    //     : 'Follow',
-                    viewProfileController.currentWeBuxxUser.value!.followers
-                                .contains(weBuzzUser.userId) &&
-                            viewProfileController
-                                .currentWeBuxxUser.value!.following
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        AddUsersController.instance.showDiaologForBlockingUser(
+                          weBuzzUser,
+                        );
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withOpacity(0.8),
+                      ),
+                      child: Text(
+                        AppController.instance.weBuzzUsers
+                                .firstWhere((user) =>
+                                    user.userId ==
+                                    FirebaseAuth.instance.currentUser!.uid)
+                                .blockedUsers
                                 .contains(weBuzzUser.userId)
-                        ? 'Friends'
-                        : viewProfileController
-                                .currentWeBuxxUser.value!.following
-                                .contains(weBuzzUser.userId)
-                            ? 'UnFollow'
-                            : 'Follow'
-                                '',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyLarge!
-                        .copyWith(color: Colors.black),
-                  ),
-                  icon: Icon(
-                    viewProfileController.currentWeBuxxUser.value!.followers
-                                .contains(weBuzzUser.userId) &&
-                            viewProfileController
-                                .currentWeBuxxUser.value!.following
-                                .contains(weBuzzUser.userId)
-                        ? Icons.person
-                        : viewProfileController
-                                .currentWeBuxxUser.value!.following
-                                .contains(weBuzzUser.userId)
-                            ? Icons.person_off_outlined
-                            : Icons.person_add_alt_1_outlined,
-                    size: 30,
-                    color: Colors.black,
-                  ),
-                  onPressed: () {
-                    if (viewProfileController.currentWeBuxxUser.value!.following
-                        .contains(weBuzzUser.userId)) {
-                      viewProfileController.unfollowUser(weBuzzUser.userId);
-                    } else {
-                      viewProfileController.followUser(weBuzzUser);
-                    }
-                    // viewProfileController.followUser(weBuzzUser);
-                  },
+                            ? 'Unblock'
+                            : 'Block',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyLarge!
+                            .copyWith(color: Colors.black),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextButton.icon(
+                      style: TextButton.styleFrom(
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withOpacity(0.8),
+                      ),
+                      label: Text(
+                        viewProfileController.currentWeBuxxUser.value!.followers
+                                    .contains(weBuzzUser.userId) &&
+                                viewProfileController
+                                    .currentWeBuxxUser.value!.following
+                                    .contains(weBuzzUser.userId)
+                            ? 'Friends'
+                            : viewProfileController
+                                    .currentWeBuxxUser.value!.following
+                                    .contains(weBuzzUser.userId)
+                                ? 'UnFollow'
+                                : 'Follow'
+                                    '',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyLarge!
+                            .copyWith(color: Colors.black),
+                      ),
+                      icon: Icon(
+                        viewProfileController.currentWeBuxxUser.value!.followers
+                                    .contains(weBuzzUser.userId) &&
+                                viewProfileController
+                                    .currentWeBuxxUser.value!.following
+                                    .contains(weBuzzUser.userId)
+                            ? Icons.person
+                            : viewProfileController
+                                    .currentWeBuxxUser.value!.following
+                                    .contains(weBuzzUser.userId)
+                                ? Icons.person_off_outlined
+                                : Icons.person_add_alt_1_outlined,
+                        size: 30,
+                        color: Colors.black,
+                      ),
+                      onPressed: () {
+                        if (viewProfileController
+                            .currentWeBuxxUser.value!.following
+                            .contains(weBuzzUser.userId)) {
+                          viewProfileController.unfollowUser(weBuzzUser.userId);
+                        } else {
+                          viewProfileController.followUser(weBuzzUser);
+                        }
+                        // viewProfileController.followUser(weBuzzUser);
+                      },
+                    ),
+                  ],
                 );
               },
             )
@@ -296,6 +332,8 @@ class ViewProfilePage extends StatelessWidget {
                         subtitle: 'Computer Science',
                         title: 'Department',
                       ),
+
+                      // User lavel
                       if (weBuzzUser.level != null)
                         BasicInfoWidget(
                           iconData: FontAwesomeIcons.stairs,
@@ -304,22 +342,37 @@ class ViewProfilePage extends StatelessWidget {
                         ),
                       const TitleSetting(title: 'Contact Information'),
                       const SizedBox(height: 15),
-                      BasicInfoWidget(
-                        iconData: Icons.email,
-                        subtitle: weBuzzUser.email,
-                        title: 'Email',
+
+                      // User email
+                      Builder(
+                        builder: (context) {
+                          final email = weBuzzUser.email.length >= 20
+                              ? "${weBuzzUser.email.substring(0, 20)}..."
+                              : weBuzzUser.email;
+                          return BasicInfoWidget(
+                            iconData: Icons.email,
+                            subtitle: email,
+                            title: 'Email',
+                          );
+                        },
                       ),
-                      BasicInfoWidget(
-                        iconData: Icons.phone,
-                        subtitle: weBuzzUser.phone ?? 'not set',
-                        title: 'Phone No.',
-                      ),
+
+                      // User phone
+                      if (weBuzzUser.phone != null)
+                        BasicInfoWidget(
+                          iconData: Icons.phone,
+                          subtitle: weBuzzUser.phone ?? 'not set',
+                          title: 'Phone No.',
+                        ),
+
+                      // Date of register
                       BasicInfoWidget(
                         iconData:
                             FluentSystemIcons.ic_fluent_calendar_date_filled,
-                        subtitle: MethodUtils.formatDateWithMonthAndDay(
-                          // TODO get the month years and days
-                          weBuzzUser.createdAt,
+                        subtitle: MethodUtils.getLastMessageTime(
+                          time: weBuzzUser.createdAt.millisecondsSinceEpoch
+                              .toString(),
+                          showYear: true,
                         ),
                         title: 'Joined On',
                       ),

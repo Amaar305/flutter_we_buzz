@@ -6,8 +6,10 @@ import 'package:hi_tweet/services/firebase_service.dart';
 import 'package:nb_utils/nb_utils.dart';
 
 import '../../../../model/buzz_enum.dart';
+import '../../../../model/notification_model.dart';
 import '../../../../model/we_buzz_model.dart';
 import '../../../../services/firebase_constants.dart';
+import '../../../../services/notification_services.dart';
 import '../../../utils/custom_full_screen_dialog.dart';
 import '../../../utils/method_utils.dart';
 import '../../dashboard/my_app_controller.dart';
@@ -22,7 +24,9 @@ class ReplyController extends GetxController {
   }
 
   Future<void> reply(WeBuzz weBuzz) async {
-    if (textEditingController.text.isNotEmpty && weBuzz.refrence != null) {
+    if (textEditingController.text.isNotEmpty &&
+        weBuzz.refrence != null &&
+        FirebaseAuth.instance.currentUser != null) {
       CustomFullScreenDialog.showDialog();
       WeBuzz replyBuzz = WeBuzz(
         id: MethodUtils.generatedId,
@@ -43,8 +47,13 @@ class ReplyController extends GetxController {
         likesCount: 0,
         repliesCount: 0,
         isRebuzz: false,
+        views: [], isCampusBuzz: false,
       );
       try {
+        // Getting target user info, post owner
+        final targetUser = AppController.instance.weBuzzUsers
+            .firstWhere((user) => user.userId == weBuzz.authorId);
+
         await weBuzz.refrence!
             .collection(firebaseRepliesCollection)
             .add(replyBuzz.toJson())
@@ -57,6 +66,13 @@ class ReplyController extends GetxController {
               .update({
             'repliesCount': FieldValue.increment(1),
           });
+          // If current user is not equal to the post author, send the notification
+          if (weBuzz.authorId != FirebaseAuth.instance.currentUser!.uid) {
+            NotificationServices.sendNotification(
+              notificationType: NotificationType.postComment,
+              targetUser: targetUser,
+            );
+          }
         });
       } catch (e) {
         CustomFullScreenDialog.cancleDialog();
@@ -69,6 +85,5 @@ class ReplyController extends GetxController {
   void onClose() {
     super.onClose();
     textEditingController.dispose();
-    // TODO do this to all of the controllers
   }
 }

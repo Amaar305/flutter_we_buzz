@@ -1,7 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hi_tweet/views/pages/chat/add_users_page/add_users_controller.dart';
 
+import '../../utils/constants.dart';
+import '../../utils/my_date_utils.dart';
+import '../../widgets/chat/custom_list_view.dart';
 import '../../widgets/custom_app_bar.dart';
+import '../chat/add_users_page/components/user_online_condition.dart';
 import '../dashboard/my_app_controller.dart';
 
 late double _deviceHeight;
@@ -49,10 +55,35 @@ class BlockedUsersPrivacyPage extends StatelessWidget {
     return Expanded(
       child: GetX<AppController>(
         builder: (controller) {
+          final myBlockedUsersID = controller.weBuzzUsers
+              .firstWhere((user) =>
+                  user.userId == FirebaseAuth.instance.currentUser!.uid)
+              .blockedUsers;
+          final myBlockedUsers = myBlockedUsersID
+              .map((id) => controller.weBuzzUsers
+                  .firstWhere((user) => user.userId == id))
+              .toList();
+
           return ListView.builder(
-            itemCount: controller.weBuzzUsers.length,
+            itemCount: myBlockedUsers.length,
             itemBuilder: (context, index) {
-              return Text('User $index');
+              final user = myBlockedUsers[index];
+              return CustomListViewTile(
+                onlineStatus: shouldDisplayOnlineStatus(user),
+                height: MediaQuery.of(context).size.height * 0.10,
+                title: user.username,
+                subtitle: 'Last Seen: ${MyDateUtil.getLastMessageTime(
+                  time: user.lastActive,
+                  showYear: true,
+                )}',
+                imageUrl: user.imageUrl != null
+                    ? user.imageUrl!
+                    : defaultProfileImage,
+                isOnline: user.isOnline,
+                isSelected: false,
+                onLongPress: () => AddUsersController.instance
+                    .showDiaologForBlockingUser(user),
+              );
             },
           );
         },

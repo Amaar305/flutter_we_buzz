@@ -6,6 +6,7 @@ import 'package:get_storage/get_storage.dart';
 import '../../../services/firebase_service.dart';
 
 class SettingsController extends GetxController {
+  static final SettingsController instance = Get.find();
   final _getStorage = GetStorage();
   final storageKey = 'isDarkMode';
 
@@ -15,7 +16,7 @@ class SettingsController extends GetxController {
     return isSavedDarkMode ? ThemeMode.dark : ThemeMode.light;
   }
 
-  bool get isSavedDarkMode => _getStorage.read(storageKey) ?? false;
+  bool get isSavedDarkMode => _getStorage.read(storageKey) ?? true;
 
   void savedDarkMode(bool isDarkMode) {
     _getStorage.write(storageKey, isDarkMode);
