@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hi_tweet/services/firebase_constants.dart';
+import 'package:hi_tweet/views/pages/dashboard/my_app_controller.dart';
 import 'package:hi_tweet/views/widgets/home/my_buttons.dart';
 import 'package:nb_utils/nb_utils.dart';
 
@@ -34,6 +35,8 @@ class UserListController extends GetxController {
   }
 
   void makeMeStaff(WeBuzzUser user, bool staff) {
+    final user = AppController.instance.currentUser;
+    if (user == null || !user.isAdmin) return;
     Get.dialog(
       AlertDialog(
         title: const Text('Staff?'),

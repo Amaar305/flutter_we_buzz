@@ -112,48 +112,10 @@ class ContinueReadingWidget extends StatelessWidget {
                           ),
                         ),
                         onPressed: () {
-                          try {
-                            WeBuzz selectedAd =
-                                ProgramsController.instance.getRandomAdvert();
-                            int guess =
-                                ProgramsController.instance.nextNumber(20);
-                            if (guess % 2 == 0) {
-                              toast('Ad for 15 seconds');
-                              Get.to(
-                                () => AdvertPage(
-                                  advert: selectedAd,
-                                  navigaToPage: () => Get.off(
-                                    () => Get.to(
-                                      () => DocumentView(
-                                        url: lectureNoteModel.url,
-                                        title: lectureNoteModel.title,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            } else {
-                              Get.to(
-                                () => Get.to(
-                                  () => DocumentView(
-                                    url: lectureNoteModel.url,
-                                    title: lectureNoteModel.title,
-                                  ),
-                                ),
-                              );
-                            }
-                          } catch (e) {
-                            Get.to(
-                              () => Get.to(
-                                () => DocumentView(
-                                  url: lectureNoteModel.url,
-                                  title: lectureNoteModel.title,
-                                ),
-                              ),
-                            );
-                            log('Error trying to display an ads');
-                            log(e);
-                          }
+                          Get.to(() => DocumentView(
+                                url: lectureNoteModel.url,
+                                title: lectureNoteModel.title,
+                              ));
                         },
                         child: const Text(
                           'Continue',

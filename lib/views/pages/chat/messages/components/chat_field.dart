@@ -262,9 +262,11 @@ class ChatMessageFWithBotield extends StatelessWidget {
 
                       GetBuilder<AppController>(
                         builder: (control) {
-                          if (!control.currentUser!.isVerified) {
-                            return const SizedBox();
-                          }
+                          // if (!control.currentUser!.isVerified) {
+                          //   return const SizedBox();
+                          // }
+                          // ignore: unused_local_variable
+                          final user = control.currentUser!.isVerified;
                           return IconButton(
                             onPressed: () async {
                               try {

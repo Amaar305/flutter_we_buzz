@@ -1,6 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:hi_tweet/services/firebase_service.dart';
 import 'package:hi_tweet/views/utils/constants.dart';
 import 'package:nb_utils/nb_utils.dart';
 

@@ -26,6 +26,7 @@ class BookCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
+         AppController.instance.updateLastBook(lecture.id);
         try {
           WeBuzz selectedAd = ProgramsController.instance.getRandomAdvert();
           int guess = ProgramsController.instance.nextNumber(20);
@@ -50,7 +51,7 @@ class BookCard extends StatelessWidget {
               ),
             );
           }
-          AppController.instance.updateLastBook(lecture.id);
+         
         } catch (e) {
           Get.to(
             () => DocumentView(

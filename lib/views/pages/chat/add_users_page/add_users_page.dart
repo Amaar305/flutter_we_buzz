@@ -5,7 +5,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 
 import '../../../utils/constants.dart';
-import '../../../utils/method_utils.dart';
 import '../../../widgets/home/custom_tab_bar.dart';
 import '../../../widgets/home/my_buttons.dart';
 import '../../dashboard/my_app_controller.dart';
@@ -39,27 +38,7 @@ class AddUsersPage extends GetView<AddUsersController> {
             ),
           ],
         ),
-        floatingActionButton: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            GetBuilder<AddUsersController>(
-              builder: (_) {
-                return TextButton.icon(
-                  onPressed: null,
-                  icon: const Icon(
-                    Icons.person,
-                    size: 30,
-                  ),
-                  label: Text(
-                    MethodUtils.formatNumber(controller.index),
-                    style: const TextStyle(fontSize: 20),
-                  ),
-                );
-              },
-            ),
-            FloatingActionButton(
+        floatingActionButton: FloatingActionButton(
               onPressed: () {
                 try {
                   final bot = AppController.instance.weBuzzUsers
@@ -75,8 +54,31 @@ class AddUsersPage extends GetView<AddUsersController> {
                 size: 35,
               ),
             ),
-          ],
-        ),
+        
+        
+        // Column(
+        //   mainAxisAlignment: MainAxisAlignment.start,
+        //   crossAxisAlignment: CrossAxisAlignment.start,
+        //   mainAxisSize: MainAxisSize.min,
+        //   children: [
+        //     GetBuilder<AddUsersController>(
+        //       builder: (_) {
+        //         return TextButton.icon(
+        //           onPressed: null,
+        //           icon: const Icon(
+        //             Icons.person,
+        //             size: 30,
+        //           ),
+        //           label: Text(
+        //             MethodUtils.formatNumber(controller.index),
+        //             style: const TextStyle(fontSize: 20),
+        //           ),
+        //         );
+        //       },
+        //     ),
+            
+        //   ],
+        // ),
         body: Container(
           padding: kPadding,
           height: size.height * 0.98,
