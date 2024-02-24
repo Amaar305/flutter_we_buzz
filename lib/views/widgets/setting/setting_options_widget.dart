@@ -18,10 +18,10 @@ class MySettingOption1 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.only(bottom: 35),
+        padding: const EdgeInsets.only(bottom: 20),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -30,7 +30,7 @@ class MySettingOption1 extends StatelessWidget {
                 CircleAvatar(
                   radius: 23,
                   backgroundColor:
-                      Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                      Theme.of(context).colorScheme.primary.withOpacity(0.9),
                   child: Icon(iconData),
                 ),
                 const SizedBox(width: 10),
@@ -41,13 +41,15 @@ class MySettingOption1 extends StatelessWidget {
                     Text(
                       title,
                       style: const TextStyle(
-                          fontSize: 17, fontWeight: FontWeight.bold),
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Text(
                       subtitle,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 15,
+                        fontSize: 13,
                         color: Colors.grey.shade400,
                       ),
                     ),
@@ -90,14 +92,19 @@ class MySettingOption2 extends StatelessWidget {
                 CircleAvatar(
                   radius: 23,
                   backgroundColor:
-                      Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                      Theme.of(context).colorScheme.primary.withOpacity(0.9),
                   child: Icon(iconData),
                 ),
                 const SizedBox(width: 16),
                 Text(
                   title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                      fontSize: 17, fontWeight: FontWeight.bold),
+                    fontSize: 15,
+                    overflow: TextOverflow.ellipsis,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),

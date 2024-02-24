@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../widgets/custom_app_bar.dart';
+import '../../utils/constants.dart';
+import '../../widgets/setting/custom_setting_title.dart';
 import '../../widgets/setting/setting_options_widget.dart';
 import '../dashboard/my_app_controller.dart';
 
@@ -11,32 +12,13 @@ class NotificationSettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final deviceHeight = MediaQuery.of(context).size.height;
-    final deviceWidth = MediaQuery.of(context).size.height;
-    return _buildUI(deviceHeight, deviceWidth);
-  }
-
-  Widget _buildUI(double deviceHeight, double deviceWidth) {
     return Scaffold(
-      body: Container(
-        padding: EdgeInsetsDirectional.symmetric(
-          horizontal: deviceWidth * 0.03,
-          vertical: deviceHeight * 0.02,
-        ),
-        height: deviceHeight * 0.98,
-        width: deviceWidth * 0.97,
-        child: Column(
-          mainAxisSize: MainAxisSize.max,
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            CustomAppBar(
-              'Notification Settings',
-              secondaryAction: const BackButton(),
-            ),
-            _buildNotifications(),
-          ],
-        ),
+      appBar: AppBar(
+        title: const CustomSettingTitle(title: 'Notifications'),
+      ),
+      body: Padding(
+        padding: kPadding,
+        child: _buildNotifications(),
       ),
     );
   }
@@ -51,7 +33,7 @@ class NotificationSettingsPage extends StatelessWidget {
           GetBuilder<AppController>(
             builder: (controll) {
               return MySettingOption2(
-                iconData: Icons.notifications_active,
+                iconData: Icons.notifications_active_outlined,
                 title: 'Notification',
                 trailing: Switch(
                   value: controll.currentUser != null
@@ -67,8 +49,8 @@ class NotificationSettingsPage extends StatelessWidget {
           GetBuilder<AppController>(
             builder: (controll) {
               return MySettingOption2(
-                iconData: Icons.notifications_active,
-                title: 'Chat Notification',
+                iconData: Icons.notifications_active_outlined,
+                title: 'Chat',
                 trailing: Switch(
                   value: controll.currentUser != null
                       ? controll.currentUser!.chatMessageNotifications
@@ -83,8 +65,8 @@ class NotificationSettingsPage extends StatelessWidget {
           GetBuilder<AppController>(
             builder: (controll) {
               return MySettingOption2(
-                iconData: Icons.notifications_active,
-                title: 'Buzz Notification',
+                iconData: Icons.notifications_active_outlined,
+                title: 'Buzz ',
                 trailing: Switch(
                   value: controll.currentUser != null
                       ? controll.currentUser!.postNotifications
@@ -99,8 +81,8 @@ class NotificationSettingsPage extends StatelessWidget {
           GetBuilder<AppController>(
             builder: (controll) {
               return MySettingOption2(
-                iconData: Icons.notifications_active,
-                title: 'Likes Notification',
+                iconData: Icons.notifications_active_outlined,
+                title: 'Likes ',
                 trailing: Switch(
                   value: controll.currentUser != null
                       ? controll.currentUser!.likeNotifications
@@ -115,8 +97,8 @@ class NotificationSettingsPage extends StatelessWidget {
           GetBuilder<AppController>(
             builder: (controll) {
               return MySettingOption2(
-                iconData: Icons.notifications_active,
-                title: 'Comments Notification',
+                iconData: Icons.notifications_active_outlined,
+                title: 'Comments ',
                 trailing: Switch(
                   value: controll.currentUser != null
                       ? controll.currentUser!.commentNotifications
@@ -131,8 +113,8 @@ class NotificationSettingsPage extends StatelessWidget {
           GetBuilder<AppController>(
             builder: (controll) {
               return MySettingOption2(
-                iconData: Icons.notifications_active,
-                title: 'Saved Notification',
+                iconData: Icons.notifications_active_outlined,
+                title: 'Saved ',
                 trailing: Switch(
                   value: controll.currentUser != null
                       ? controll.currentUser!.saveNotifications
@@ -147,8 +129,8 @@ class NotificationSettingsPage extends StatelessWidget {
           GetBuilder<AppController>(
             builder: (controll) {
               return MySettingOption2(
-                iconData: Icons.notifications_active,
-                title: 'Follows Notification',
+                iconData: Icons.notifications_active_outlined,
+                title: 'Follows ',
                 trailing: Switch(
                   value: controll.currentUser != null
                       ? controll.currentUser!.followNotifications

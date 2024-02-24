@@ -1,19 +1,27 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class WeBuzzUser {
-  late String userId;
-  late String email;
-  late String name;
-  late String username;
-  late String lastActive;
+  final String userId;
+  final String email;
+  final String name;
+  final String username;
+  final String lastActive;
   late String pushToken;
-  late String bio;
-  late String location;
-  late bool isOnline;
-  late bool isStaff;
-  late bool isAdmin;
+  final String bio;
+  final String location;
+
+  final String? imageUrl;
+  final String? program;
+  final String? level;
+  final String? phone;
+  final String? lastBook;
+
+  final bool isOnline;
+  final bool isStaff;
+  final bool isAdmin;
   final bool isSuspended;
-  late bool notification;
+  final bool isUndergraduate;
+  final bool notification;
   final bool postNotifications;
   final bool likeNotifications;
   final bool commentNotifications;
@@ -21,22 +29,26 @@ class WeBuzzUser {
   final bool followNotifications;
   final bool userBlockNotifications;
   final bool chatMessageNotifications;
-  late bool isCompleteness;
-  late bool isVerified;
-  final List<String> followers;
-  final List<String> following;
-  final List<String> savedBuzz;
-  final List<String> blockedUsers;
-  late Timestamp createdAt;
-  late DirectMessagePrivacy directMessagePrivacy;
-  late DirectMessagePrivacy onlineStatusIndicator;
+  final bool sponsor;
+  final bool bot;
+  final bool premium;
+  final bool isCompleteness;
+  final bool isClassRep;
+  final bool hasPaid;
+  final bool isVerified;
 
-  late String? imageUrl;
-  late String? program;
-  late String? level;
-  late String? phone;
-  late Timestamp? lastSeen;
-  late Timestamp? lastUpdatedPassword;
+  final int followers;
+  final int following;
+
+  final List<String> blockedUsers;
+  final List<String> reportUsers;
+  final List<String> bookmarks;
+
+  final Timestamp createdAt;
+  final Timestamp? lastUpdatedPassword;
+
+  final DirectMessagePrivacy directMessagePrivacy;
+  final DirectMessagePrivacy onlineStatusIndicator;
   WeBuzzUser({
     required this.userId,
     required this.email,
@@ -44,22 +56,25 @@ class WeBuzzUser {
     required this.isOnline,
     required this.isStaff,
     required this.isAdmin,
+    required this.isUndergraduate,
     required this.notification,
-    required this.isCompleteness,
+    required this.premium,
     required this.isVerified,
     required this.createdAt,
     required this.lastActive,
     required this.location,
-    required this.followers,
-    required this.following,
     required this.username,
-    required this.pushToken,
-    required this.blockedUsers,
-    required this.savedBuzz,
+    this.bot = false,
+    this.isClassRep = false,
+    this.isCompleteness = false,
+    this.pushToken = '',
+    this.blockedUsers = const [],
+    this.bookmarks = const [],
     this.bio = 'Hey, I\'m using We Buzz!',
     this.directMessagePrivacy = DirectMessagePrivacy.everyone,
     this.onlineStatusIndicator = DirectMessagePrivacy.everyone,
     this.isSuspended = false,
+    this.sponsor = false,
     this.postNotifications = true,
     this.likeNotifications = true,
     this.commentNotifications = true,
@@ -67,50 +82,19 @@ class WeBuzzUser {
     this.followNotifications = true,
     this.userBlockNotifications = true,
     this.chatMessageNotifications = true,
-    this.lastSeen,
+    this.reportUsers = const [],
     this.imageUrl,
     this.program,
     this.level,
     this.phone,
     this.lastUpdatedPassword,
+    this.hasPaid = false,
+    this.lastBook,
+    this.followers = 0,
+    this.following = 0,
   });
 
   Map<String, dynamic> toMap() {
-    String directMessagePrivacyType;
-    String onlineStatusIndicatorType;
-
-    switch (directMessagePrivacy) {
-      case DirectMessagePrivacy.everyone:
-        directMessagePrivacyType = directMessagePrivacy.name;
-        break;
-      case DirectMessagePrivacy.followers:
-        directMessagePrivacyType = directMessagePrivacy.name;
-        break;
-      case DirectMessagePrivacy.following:
-        directMessagePrivacyType = directMessagePrivacy.name;
-        break;
-      case DirectMessagePrivacy.mutual:
-        directMessagePrivacyType = directMessagePrivacy.name;
-        break;
-      default:
-        directMessagePrivacyType = "";
-    }
-    switch (onlineStatusIndicator) {
-      case DirectMessagePrivacy.everyone:
-        onlineStatusIndicatorType = onlineStatusIndicator.name;
-        break;
-      case DirectMessagePrivacy.followers:
-        onlineStatusIndicatorType = onlineStatusIndicator.name;
-        break;
-      case DirectMessagePrivacy.following:
-        onlineStatusIndicatorType = onlineStatusIndicator.name;
-        break;
-      case DirectMessagePrivacy.mutual:
-        onlineStatusIndicatorType = onlineStatusIndicator.name;
-        break;
-      default:
-        onlineStatusIndicatorType = "";
-    }
     return <String, dynamic>{
       'userId': userId,
       'email': email,
@@ -132,21 +116,28 @@ class WeBuzzUser {
       'followNotifications': followNotifications,
       'userBlockNotifications': userBlockNotifications,
       'chatMessageNotifications': chatMessageNotifications,
-      'isCompleteness': isCompleteness,
+      'premium': premium,
       'isVerified': isVerified,
       'followers': followers,
       'following': following,
-      'savedBuzz': savedBuzz,
       'blockedUsers': blockedUsers,
       'createdAt': createdAt,
-      'directMessagePrivacy': directMessagePrivacyType,
-      'onlineStatusIndicator': onlineStatusIndicatorType,
+      'directMessagePrivacy': directMessagePrivacy.name,
+      'onlineStatusIndicator': onlineStatusIndicator.name,
       'imageUrl': imageUrl,
       'program': program,
       'level': level,
       'phone': phone,
-      'lastSeen': lastSeen,
       'lastUpdatedPassword': lastUpdatedPassword,
+      'sponsor': sponsor,
+      'reportUsers': reportUsers,
+      'bot': bot,
+      'isClassRep': isClassRep,
+      'isCompleteness': isCompleteness,
+      'isUndergraduate': isUndergraduate,
+      'hasPaid': hasPaid,
+      'lastBook': lastBook,
+      'bookmarks': bookmarks,
     };
   }
 
@@ -192,27 +183,18 @@ class WeBuzzUser {
         onlineStatusIndicator = DirectMessagePrivacy.unknown;
     }
 
-    List<String> followers = (map['followers'] as List)
-        .map((hashtag) => hashtag.toString())
-        .toList();
-    List<String> following = (map['following'] as List)
-        .map((hashtag) => hashtag.toString())
-        .toList();
-    List<String> savedBuzz =
-        (map['savedBuzz'] as List).map((saved) => saved.toString()).toList();
-    List<String> blockedUsers = (map['blockedUsers'] as List)
-        .map((blockedUser) => blockedUser.toString())
-        .toList();
+    List<String> bookmarks = List<String>.from(map['bookmarks']);
+    List<String> blockedUsers = List<String>.from(map['blockedUsers']);
+    List<String> reportUsers = List<String>.from(map['reportUsers']);
 
     return WeBuzzUser(
       userId: map['userId'] as String,
       email: map['email'] as String,
-      username: map['username'],
+      username: map['username'] as String,
       isOnline: map['isOnline'] as bool,
       isStaff: map['isStaff'] as bool,
       isAdmin: map['isAdmin'] as bool,
       notification: map['notification'] as bool,
-      lastSeen: map['lastSeen'] as Timestamp?,
       createdAt: map['createdAt'] as Timestamp,
       pushToken: map['pushToken'] as String,
       bio: map['bio'] as String,
@@ -225,27 +207,36 @@ class WeBuzzUser {
       phone: map['phone'] as String?,
       location: map['location'] as String,
       isCompleteness: map['isCompleteness'] as bool,
+      premium: map['premium'] as bool,
       isVerified: map['isVerified'] as bool,
-      followers: followers,
-      following: following,
-      savedBuzz: savedBuzz,
+      followers: map['followers'] as int,
+      following: map['following'] as int,
       blockedUsers: blockedUsers,
       directMessagePrivacy: directMessagePrivacy,
       onlineStatusIndicator: onlineStatusIndicator,
-      chatMessageNotifications: map['chatMessageNotifications'],
-      commentNotifications: map['commentNotifications'],
-      followNotifications: map['followNotifications'],
-      isSuspended: map['isSuspended'],
-      likeNotifications: map['likeNotifications'],
-      postNotifications: map['postNotifications'],
-      saveNotifications: map['saveNotifications'],
-      userBlockNotifications: map['userBlockNotifications'],
+      chatMessageNotifications: map['chatMessageNotifications'] as bool,
+      commentNotifications: map['commentNotifications'] as bool,
+      followNotifications: map['followNotifications'] as bool,
+      isSuspended: map['isSuspended'] as bool,
+      likeNotifications: map['likeNotifications'] as bool,
+      postNotifications: map['postNotifications'] as bool,
+      saveNotifications: map['saveNotifications'] as bool,
+      userBlockNotifications: map['userBlockNotifications'] as bool,
+      bot: map['bot'] as bool,
+      hasPaid: map['hasPaid'] as bool,
+      sponsor: map['sponsor'] as bool,
+      reportUsers: reportUsers,
+      isClassRep: map['isClassRep'] as bool,
+      isUndergraduate: map['isUndergraduate'] as bool,
+      lastBook: map['lastBook'] as String?,
+      bookmarks: bookmarks,
+       
     );
   }
 
   @override
   String toString() {
-    return 'CampusBuzzUser(userId: $userId, email: $email, isOnline: $isOnline, isStaff: $isStaff, isAdmin: $isAdmin, notification: $notification, lastSeen: $lastSeen, createdAt: $createdAt, followers: pushToken: $pushToken, name: $name, bio: $bio, imageUrl: $imageUrl, program: $program, level: $level, lastUpdatedPassword: $lastUpdatedPassword, phone:$phone, location: $location, username: $username)';
+    return 'CampusBuzzUser(userId: $userId, email: $email, isOnline: $isOnline, isStaff: $isStaff, isAdmin: $isAdmin, notification: $notification,  createdAt: $createdAt, followers: pushToken: $pushToken, name: $name, bio: $bio, imageUrl: $imageUrl, program: $program, level: $level, lastUpdatedPassword: $lastUpdatedPassword, phone:$phone, location: $location, username: $username)';
   }
 }
 

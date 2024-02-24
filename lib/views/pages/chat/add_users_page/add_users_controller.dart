@@ -2,15 +2,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hi_tweet/views/pages/chat/messages/messages_page.dart';
 import 'package:nb_utils/nb_utils.dart';
 
-import '../../../../model/chat_message_model.dart';
+import '../../../../model/message_model.dart';
 import '../../../../model/chat_model.dart';
+import '../../../../model/notification_model.dart';
 import '../../../../model/we_buzz_user_model.dart';
 import '../../../../services/firebase_service.dart';
+import '../../../../services/notification_services.dart';
 import '../../../utils/custom_full_screen_dialog.dart';
 import '../../dashboard/my_app_controller.dart';
+import '../messages/messages_page.dart';
 
 class AddUsersController extends GetxController {
   static final AddUsersController instance = Get.find();
@@ -21,13 +23,16 @@ class AddUsersController extends GetxController {
   // ignore: non_constant_identifier_names
   late RxList<WeBuzzUser> WeBuzzUsers;
 
+  RxList<String> currenttUsersFollowers = RxList<String>([]);
+  RxList<String> currenttUsersFollowing = RxList<String>([]);
+
   String _groupTitle = '';
 
   var isShearch = false.obs;
 
   int index = 2;
 
-  List<String> titles = [
+  List<String> tabTitles = [
     'Mutual',
     'Following',
     'Followers',
@@ -35,7 +40,6 @@ class AddUsersController extends GetxController {
 
   void updateIndex(int index) {
     this.index = index;
-    log(index);
     update();
   }
 
@@ -45,6 +49,10 @@ class AddUsersController extends GetxController {
 
     searchEditingController = TextEditingController();
     WeBuzzUsers = AppController.instance.weBuzzUsers;
+    currenttUsersFollowers.bindStream(FirebaseService.streamFollowers(
+        FirebaseAuth.instance.currentUser!.uid));
+    currenttUsersFollowing.bindStream(FirebaseService.streamFollowing(
+        FirebaseAuth.instance.currentUser!.uid));
     _selectedUser = [];
   }
 
@@ -55,7 +63,6 @@ class AddUsersController extends GetxController {
   void setGroupTitle(String name) {
     _groupTitle = name;
   }
-
 
   void updateSelectedUser(WeBuzzUser user) {
     if (_selectedUser.contains(user)) {
@@ -120,7 +127,8 @@ class AddUsersController extends GetxController {
             QuerySnapshot chatMessages =
                 await FirebaseService().getLastMessageForChat(chatDocument.id);
             if (chatMessages.docs.isNotEmpty) {
-              messages.add(MessageModel.fromDocumentSnapshot(chatMessages.docs.first));
+              messages.add(
+                  MessageModel.fromDocumentSnapshot(chatMessages.docs.first));
             }
 
             ChatConversation chatConversation = ChatConversation(
@@ -227,6 +235,15 @@ class AddUsersController extends GetxController {
                 members.add(WeBuzzUser.fromDocument(userSnapshot));
               }
 
+              for (var user in members) {
+                NotificationServices.sendNotification(
+                  targetUser: user,
+                  notificationType: NotificationType.groupChat,
+                  notifiactionRef: doc!.id,
+                  groupChat: chatGroupTitle,
+                );
+              }
+
               // Preparing the chat page before navigating
               MessagesPage chatPage = MessagesPage(
                 chat: ChatConversation(
@@ -266,8 +283,6 @@ class AddUsersController extends GetxController {
     }
   }
 
-
-
 // Block user
   void blockedUsers(WeBuzzUser targetUser) async {
     CustomFullScreenDialog.showDialog();
@@ -296,16 +311,19 @@ class AddUsersController extends GetxController {
     }
   }
 
-  void showDiaologForBlockingUser(WeBuzzUser targetUser,
-      {void Function()? onPressed}) {
+  void showDiaologForBlockingUser(
+    WeBuzzUser targetUser, {
+    void Function()? onPressed,
+  }) {
     Get.dialog(
       AlertDialog(
         title: const Text(
           'Block User',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
+
         content: Text(
-          '\nBy blocking ${targetUser.name} you\'ll no longer gonna recieve massegas and any notifications from this user!.',
+          'By blocking ${targetUser.name} you\'ll no longer gonna recieve massegas and any notifications from this user!.',
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w200),
         ),
         actions: [
@@ -321,12 +339,10 @@ class AddUsersController extends GetxController {
               ),
             ),
           ),
-          GetX<AppController>(
+          
+          GetBuilder<AppController>(
             builder: (controller) {
-              var unblocked = controller.weBuzzUsers
-                  .firstWhere((user) =>
-                      user.userId == FirebaseAuth.instance.currentUser!.uid)
-                  .blockedUsers
+              var unblocked = controller.currentUser!.blockedUsers
                   .contains(targetUser.userId);
               return MaterialButton(
                 onPressed: () {
@@ -339,6 +355,9 @@ class AddUsersController extends GetxController {
                   if (onPressed != null) {
                     onPressed();
                   }
+
+                  AppController.instance
+                      .fetchUserDetails(FirebaseAuth.instance.currentUser!.uid);
                 },
                 child: Text(
                   unblocked ? 'Unblock' : 'Block',
@@ -424,19 +443,31 @@ bool canCreateGroupChat({
   required List<String> membersID,
   required String currentUserID,
 }) {
+  var currenttUsersFollowers =
+      AddUsersController.instance.currenttUsersFollowers;
+  var currenttUsersFollowing =
+      AddUsersController.instance.currenttUsersFollowing;
+
   for (WeBuzzUser user in selectedUsers) {
     // Check DM privacy settings for each selected user
     if (user.directMessagePrivacy == DirectMessagePrivacy.everyone) {
+      // if selected user's dm settings is everyone
       membersID.add(user.userId);
     } else if (user.directMessagePrivacy == DirectMessagePrivacy.followers &&
-        user.followers.contains(currentUserID)) {
+        currenttUsersFollowing.contains(user.userId)) {
+      // if selected user's dm settings is only followers
+
       membersID.add(user.userId);
     } else if (user.directMessagePrivacy == DirectMessagePrivacy.following &&
-        user.following.contains(currentUserID)) {
+        currenttUsersFollowers.contains(user.userId)) {
+      // if selected user's dm settings is only following
+
       membersID.add(user.userId);
     } else if (user.directMessagePrivacy == DirectMessagePrivacy.mutual &&
-        user.followers.contains(currentUserID) &&
-        user.following.contains(currentUserID)) {
+        currenttUsersFollowing.contains(user.userId) &&
+        currenttUsersFollowers.contains(user.userId)) {
+      // if selected user's dm settings is only mutual
+
       membersID.add(user.userId);
     } else {
       // Handle the case where the user doesn't meet the DM privacy criteria

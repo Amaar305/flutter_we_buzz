@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nb_utils/nb_utils.dart';
 
@@ -12,7 +13,9 @@ import '../../../model/buzz_enum.dart';
 import '../../../model/notification_model.dart';
 import '../../../model/we_buzz_model.dart';
 import '../../../services/firebase_service.dart';
+import '../../../services/image_picker_services.dart';
 import '../../../services/notification_services.dart';
+import '../../utils/constants.dart';
 import '../../utils/custom_full_screen_dialog.dart';
 import '../../utils/custom_snackbar.dart';
 import '../../utils/method_utils.dart';
@@ -20,7 +23,7 @@ import '../dashboard/my_app_controller.dart';
 import 'hashtag_sytem.dart';
 
 class CreateBuzzController extends GetxController {
-  TextEditingController? textEditingController;
+  late TextEditingController textEditingController;
 
   // Has the image been picked?
   bool isImagePicked = false;
@@ -30,10 +33,10 @@ class CreateBuzzController extends GetxController {
 
   // Convert the picked image to file image by using the picker.path property
   File? pickedImagePath;
-  File? pickedGifPath;
+  // File? pickedGifPath;
 
-  // downloaded image url that has been sent ot cloud storage
-  String? downloadedImage;
+  // downloaded image url that has been sent to cloud storage
+  // String? downloadedImage;
 
   @override
   void onInit() {
@@ -43,14 +46,14 @@ class CreateBuzzController extends GetxController {
   }
 
   // Delete the image that has been picked
-  void cancleImage(bool deleteImage) async {
+  void cancleImage() async {
     pickedImagePath = null;
-    pickedGifPath = null;
+    // pickedGifPath = null;
     isImagePicked = !isImagePicked;
-    if (downloadedImage != null && deleteImage) {
-      log("Download image is not null, deleting....");
-      await FirebaseService.deleteImage(downloadedImage!);
-    }
+    // if (downloadedImage != null && deleteImage) {
+    //   log("Download image is not null, deleting....");
+    //   await FirebaseService.deleteImage(downloadedImage!);
+    // }
     update();
   }
 
@@ -58,7 +61,7 @@ class CreateBuzzController extends GetxController {
   void onClose() {
     super.onClose();
     picker = null;
-    cancleImage(false);
+    textEditingController.dispose();
   }
 
   Future<FilePickerResult?> fileGifPicker() async {
@@ -71,35 +74,21 @@ class CreateBuzzController extends GetxController {
 
   void pickedGIF() async {
     CustomFullScreenDialog.showDialog();
+    cancleImage(); //Set null for the selected images gif or not
     try {
-      cancleImage(true);
+      final gifFile = await fileGifPicker()
+          .whenComplete(() => CustomFullScreenDialog.cancleDialog());
 
-      if (FirebaseAuth.instance.currentUser != null) {
-        final loggedInUser = FirebaseAuth.instance.currentUser;
-
-        final result = await fileGifPicker();
-        if (result != null) {
-          pickedGifPath = File(result.files.single.path!);
-          isImagePicked = true;
-
-          if (pickedGifPath != null && isImagePicked) {
-            downloadedImage = await FirebaseService.uploadImage(
-                    pickedGifPath!, 'post_images/gif/${loggedInUser!.uid}/')
-                .whenComplete(() => CustomFullScreenDialog.cancleDialog());
-          }
-        } else {
-          CustomFullScreenDialog.cancleDialog();
-          log("Null For Gif file");
-        }
-      }
+      if (gifFile == null) return; //Exit if the return image is null
+      pickedImagePath = File(gifFile.files.single.path!);
+      isImagePicked = true;
     } catch (e) {
       CustomFullScreenDialog.cancleDialog();
       CustomSnackBar.showSnackBar(
         context: Get.context,
         title: "Image picker",
         message: "You haven't picked an image!",
-        backgroundColor:
-            Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
+        backgroundColor: kPrimary.withOpacity(0.5),
       );
       log("Error trying to pick gif");
       log(e);
@@ -109,112 +98,108 @@ class CreateBuzzController extends GetxController {
 
   void selectImage() async {
     CustomFullScreenDialog.showDialog();
-    if (downloadedImage != null) {
-      cancleImage(true);
-    }
-    // Getting user info
-    if (FirebaseAuth.instance.currentUser != null) {
-      final loggedInUser = FirebaseAuth.instance.currentUser;
+    cancleImage();
 
-      try {
-        final image = await picker!
-            .pickImage(source: ImageSource.gallery, imageQuality: 82);
+    // Picking the image
+    final image = await ImagePickerService()
+        .imagePicker(
+          source: ImageSource.gallery,
+          cropAspectRatio: const CropAspectRatio(ratioX: 16, ratioY: 9),
+        )
+        .whenComplete(() => CustomFullScreenDialog.cancleDialog());
 
-        // Convert the picked image to file image by using the picker.path property
-        pickedImagePath = File(image!.path);
+    if (image == null) return;
 
-        // Set the isImagePicked to true, to update the UI
-        isImagePicked = true;
+    // Convert the picked image to file image by using the picker.path property
+    pickedImagePath = File(image.path);
 
-        if (pickedImagePath != null && isImagePicked) {
-          downloadedImage = await FirebaseService.uploadImage(
-                  pickedImagePath!, 'post_images/${loggedInUser!.uid}/')
-              .whenComplete(() => CustomFullScreenDialog.cancleDialog());
-        }
-      } catch (e) {
-        log(e);
-        CustomFullScreenDialog.cancleDialog();
-        CustomSnackBar.showSnackBar(
-          context: Get.context,
-          title: "Image picker",
-          message: "You haven't picked an image!",
-          backgroundColor:
-              Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
-        );
-      }
-      update();
-    }
+    // Set the isImagePicked to true, to update the UI
+    isImagePicked = true;
+    update();
   }
 
   // Send
   void createTweet({bool? isStaff}) async {
+    // if user is null return
+    if (FirebaseAuth.instance.currentUser == null) return;
+
     CustomFullScreenDialog.showDialog();
+
     // Getting user info
     final loggedInUser = FirebaseAuth.instance.currentUser;
     String location = AppController.instance.city;
-    if (textEditingController!.text.isNotEmpty && loggedInUser != null) {
-      isImagePicked = false;
 
-      final hashtags = hashTagSystem(textEditingController!.text);
+    if (textEditingController.text.isNotEmpty) {
+      final hashtags = hashTagSystem(textEditingController.text);
+      final urls = extractUrls(textEditingController.text);
+
+      // downloaded image url that has been sent to cloud storage
+      String? imageUrl;
+
+      // Upload the image to the cloud storage;
+      if (pickedImagePath != null && isImagePicked) {
+        imageUrl = await FirebaseService.uploadImage(
+          pickedImagePath!,
+          'post_images/${loggedInUser!.uid}/',
+        );
+      }
 
       WeBuzz tweetBuzz = WeBuzz(
         id: MethodUtils.generatedId,
         docId: '',
-        authorId: loggedInUser.uid,
-        content: textEditingController!.text.trim(),
+        authorId: loggedInUser!.uid,
+        content: textEditingController.text.trim(),
         createdAt: Timestamp.now(),
         reBuzzsCount: 0,
         buzzType: BuzzType.origianl.name,
         hashtags: hashtags,
         location: location,
-        source: 'Samsumng',
-        imageUrl: downloadedImage,
-        likes: [],
-        replies: [],
-        rebuzzs: [],
+        source: Platform.isAndroid ? 'Android' : 'IOS',
+        imageUrl: imageUrl,
         originalId: '',
         likesCount: 0,
         isRebuzz: false,
         repliesCount: 0,
-        views: [],
         isCampusBuzz: isStaff ?? false,
+        links: urls,
       );
 
       try {
-        // This is just a dummy, because we do not want use it,
-        //and we must pass instance of webuzz user to the sendToNitification method
-        final currenttUser = AppController.instance.weBuzzUsers.firstWhere(
-          (element) => element.userId == loggedInUser.uid,
-        );
+        // This is just a dummy, because we do not want to use it,
+        //and we must pass instance of current user to the sendToNitification method
+        final currenttUser = AppController.instance.currentUser;
+        if (currenttUser == null) return;
 
-        await FirebaseService.createBuzzInFirestore(tweetBuzz).whenComplete(() {
+        await FirebaseService.createBuzzInFirestore(tweetBuzz).then((value) {
           CustomFullScreenDialog.cancleDialog();
+          isImagePicked = false;
           Get.back();
+          if (value == null) return;
           NotificationServices.sendNotification(
             notificationType: NotificationType.postCreation,
             targetUser: currenttUser,
+            notifiactionRef: value,
           );
         });
       } catch (e) {
+        log("Error trying to create a buzz");
+        log(e);
         CustomFullScreenDialog.cancleDialog();
         CustomSnackBar.showSnackBar(
           context: Get.context,
           title: "Warning!",
           message: "Something wen't wrong, try again later!",
-          backgroundColor:
-              Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
+          backgroundColor: kPrimary.withOpacity(0.5),
         );
       }
 
-      log(tweetBuzz.toString());
-      textEditingController!.clear();
-      update();
+      textEditingController.clear();
     } else {
       CustomFullScreenDialog.cancleDialog();
       CustomSnackBar.showSnackBar(
         context: Get.context,
         title: "Warning!",
-        message: "The user doesn't logged in, or description is empty",
+        message: "The description cannot be empty",
         backgroundColor:
             Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
       );

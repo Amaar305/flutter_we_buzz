@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hi_tweet/views/utils/constants.dart';
+import 'package:lottie/lottie.dart';
 
 import '../../controllers/update_password_controller.dart';
-import '../widgets/home/my_button.dart';
+import '../widgets/home/my_buttons.dart';
 import '../widgets/home/my_textfield.dart';
 
 class UpdatePasswordPage extends GetView<UpdatePasswordController> {
@@ -13,28 +15,28 @@ class UpdatePasswordPage extends GetView<UpdatePasswordController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(),
-      body: Center(
-        child: SingleChildScrollView(
-          child: Form(
-            key: controller.formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 25.0),
-                  child: Text(
+      body: Padding(
+        padding: kPadding,
+        child: Center(
+          child: SingleChildScrollView(
+            child: Form(
+              key: controller.formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Lottie.asset('assets/lottie/1.json'),
+                  const Text(
                     'You can only change your password each after two weeks.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 20),
+                    style: TextStyle(fontSize: 17),
                   ),
-                ),
-                GetBuilder<UpdatePasswordController>(
-                  builder: (_) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                      child: MyTextField(
+                  GetBuilder<UpdatePasswordController>(
+                    builder: (_) {
+                      return MyInputField(
                         controller: controller.currentPassEditingController,
-                        hintext: 'Current Password',
+                        label: 'Current password',
+                        hintext: 'Enter Password',
+                        iconData: Icons.lock,
                         obscureText: controller.obscureText,
                         validator: (value) {
                           if (value == null || value.isEmail) {
@@ -47,17 +49,16 @@ class UpdatePasswordPage extends GetView<UpdatePasswordController> {
                         onTap: () {
                           controller.canOrCannotSee();
                         },
-                      ),
-                    );
-                  },
-                ),
-                GetBuilder<UpdatePasswordController>(
-                  builder: (_) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                      child: MyTextField(
+                      );
+                    },
+                  ),
+                  GetBuilder<UpdatePasswordController>(
+                    builder: (_) {
+                      return MyInputField(
                         controller: controller.newPassEditingController,
-                        hintext: 'New Password',
+                        label: 'New password',
+                        hintext: 'Enter Password',
+                        iconData: Icons.lock,
                         obscureText: controller.obscureText,
                         validator: (value) {
                           if (value == null || value.isEmail) {
@@ -70,18 +71,20 @@ class UpdatePasswordPage extends GetView<UpdatePasswordController> {
                         onTap: () {
                           controller.canOrCannotSee();
                         },
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 10),
-                MyButton(
-                  text: 'Change Password',
-                  onPressed: () {
-                    controller.change(context);
-                  },
-                )
-              ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  MyRegistrationButton(
+                    title: 'Change Password',
+                    secondaryColor: Colors.white,
+                    toUpperCase: false,
+                    onPressed: () {
+                      controller.change(context);
+                    },
+                  )
+                ],
+              ),
             ),
           ),
         ),

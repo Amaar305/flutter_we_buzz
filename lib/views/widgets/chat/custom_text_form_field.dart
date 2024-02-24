@@ -59,9 +59,11 @@ class CustomTextField extends StatelessWidget {
     required this.hintText,
     required this.obscureText,
     required this.controller,
-    this.iconData,
+    this.iconData, this.onSubmitted, this.onEditingComplete,
   });
   final void Function(String)? onChanged;
+  final void Function(String)? onSubmitted;
+  final void Function()? onEditingComplete;
   final String hintText;
   final bool obscureText;
   final TextEditingController controller;
@@ -74,7 +76,9 @@ class CustomTextField extends StatelessWidget {
       child: TextField(
         controller: controller,
         onChanged: onChanged,
+        // onSubmitted: onSubmitted,
         obscureText: obscureText,
+        onEditingComplete: onEditingComplete,
         decoration: InputDecoration(
           fillColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
           filled: true,

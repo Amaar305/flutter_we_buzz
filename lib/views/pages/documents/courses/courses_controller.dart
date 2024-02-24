@@ -1,55 +1,211 @@
-// ignore_for_file: depend_on_referenced_packages
-
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:dio/dio.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:nb_utils/nb_utils.dart';
-import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../../../model/documents/course_model.dart';
 import '../../../../services/firebase_constants.dart';
 import '../../../../services/firebase_service.dart';
 import '../../../utils/custom_full_screen_dialog.dart';
+import '../../../utils/method_utils.dart';
 import '../../dashboard/my_app_controller.dart';
+import '../programs_controller.dart';
 
 class CoursesController extends GetxController {
-  RxList<CourseModel> courses = RxList([]);
+  // RxList<CourseModel> courses = RxList([]);
 
-  TextEditingController? courseCodeEditingController;
-  TextEditingController? courseTitleEditingController;
-  String _level = '';
+  late TextEditingController courseCodeEditingController;
+  String _lectureNoteRef = '';
+
+  bool isPastQ = false;
+  bool isFreeBook = false;
+
+  void updateIsPastQ(bool isPastQ) {
+    this.isPastQ = isPastQ;
+    update();
+  }
+
+  void updateIsFreeBook(bool isFreeBook) {
+    this.isFreeBook = isFreeBook;
+    update();
+  }
 
   @override
   void onInit() {
     super.onInit();
-    courses.bindStream(_streamCourses());
     courseCodeEditingController = TextEditingController();
-    courseTitleEditingController = TextEditingController();
   }
 
-  void setLevelName(String level) {
-    _level = level;
+  Query<CourseModel> queryCourse(String programId, String level) {
+    return FirebaseService.firebaseFirestore
+        .collection(firebaseCoursesCollection)
+        .where('programId', isEqualTo: programId)
+        .where('level', isEqualTo: level)
+        .withConverter<CourseModel>(
+          fromFirestore: (snapshot, _) => CourseModel.fromDocument(snapshot),
+          toFirestore: (course, _) => course.toJson(),
+        );
   }
 
-  String get levelName => _level;
+  List<String> tabTitles = [
+    'Lecture Notes',
+    'Past Questions',
+  ];
 
-  void uploadFile(
-    String programId,
-  ) async {
+  void setLectureNote(String lecture) {
+    _lectureNoteRef = lecture;
+  }
+
+  String get lecturTitile => _lectureNoteRef;
+
+  void uploadFile(String programId, String level) async {
     CustomFullScreenDialog.showDialog();
 
     if (FirebaseAuth.instance.currentUser != null) {
       // Check if current user is logged in
 
       // Get current user info
-      final currentUser = AppController.instance.weBuzzUsers.firstWhere(
-          (u) => u.userId == FirebaseAuth.instance.currentUser!.uid);
+      final currentUser = AppController.instance.currentUser;
+      if (currentUser == null) return;
+
+      if (currentUser.isStaff) {
+        // Check if current user is a staff
+        try {
+          // Create the instance of course model
+          CourseModel courseModel = CourseModel(
+            courseID: MethodUtils.generatedId,
+            programId: programId,
+            courseCode: courseCodeEditingController.text.trim(),
+            courseName: lecturTitile,
+            uploadedBy: currentUser.userId,
+            lectureRefrence: ProgramsController.instance.lectureNotes
+                .firstWhere((element) => element.title == lecturTitile)
+                .id,
+            uploadedAt: Timestamp.now(),
+            level: level,
+            pastQ: isPastQ,
+            isFreeBook: isFreeBook,
+          );
+
+          // Upload it to the firestorage
+          FirebaseService.createCourse(courseModel).whenComplete(() {
+            CustomFullScreenDialog.cancleDialog();
+            courseCodeEditingController.clear();
+            Get.back();
+          });
+        } catch (e) {
+          CustomFullScreenDialog.cancleDialog();
+
+          log("Error trying to upload file");
+          log(e);
+        }
+      }
+    } else {
+      // Else user is not logged in, cancel loading spinner
+      CustomFullScreenDialog.cancleDialog();
+    }
+  }
+
+  void deleteCourse(CourseModel courseModel) async {
+    CustomFullScreenDialog.showDialog();
+    try {
+      if (FirebaseAuth.instance.currentUser != null) {
+        // Check if current user is not null
+
+        // Current user's Id
+        final currentUserId = FirebaseAuth.instance.currentUser!.uid;
+
+        // Current user info
+        final currentUser = AppController.instance.currentUser!;
+
+        if (courseModel.uploadedBy == currentUserId || currentUser.isAdmin) {
+          // Check if currentUser uploaded the course or currentUser is admin
+
+          // Delete the course in firestore
+          await FirebaseService.deleteCourse(courseModel.courseID)
+              .whenComplete(() => CustomFullScreenDialog.cancleDialog());
+        }
+      }
+    } catch (e) {
+      CustomFullScreenDialog.cancleDialog();
+      toast('Something went wrong');
+      log('Error trying to delete course');
+      log(e);
+    }
+  }
+
+  void alert(CourseModel courseModel) {
+    Get.dialog(AlertDialog(
+      title: const Text('Warning'),
+      content: const Text(
+        'Are you sure you want to delete this course? No one can view or restore it!.',
+        style: TextStyle(fontSize: 16),
+      ),
+      actions: [
+        MaterialButton(
+          onPressed: () => Get.back(),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(
+              fontSize: 16,
+            ),
+          ),
+        ),
+        MaterialButton(
+          onPressed: () {
+            Get.back();
+            deleteCourse(courseModel);
+          },
+          child: const Text(
+            'Delete',
+            style: TextStyle(
+              fontSize: 16,
+            ),
+          ),
+        )
+      ],
+    ));
+  }
+
+  // Stream<List<CourseModel>> _streamCourses() {
+  //   return FirebaseService.firebaseFirestore
+  //       .collection(firebaseCoursesCollection)
+  //       .snapshots()
+  //       .map(
+  //         (query) => query.docs
+  //             .map((course) => CourseModel.fromDocument(course))
+  //             .toList(),
+  //       );
+  // }
+
+
+
+  @override
+  void onClose() {
+    super.onClose();
+    courseCodeEditingController.dispose();
+  }
+}
+
+
+
+
+
+/*
+
+
+
+  void uploadFile(String programId) async {
+    CustomFullScreenDialog.showDialog();
+
+    if (FirebaseAuth.instance.currentUser != null) {
+      // Check if current user is logged in
+
+      // Get current user info
+      final currentUser = AppController.instance.currentUser;
+      if (currentUser == null) return;
+
       if (currentUser.isStaff) {
         // Check if current user is a staff
         try {
@@ -89,6 +245,7 @@ class CoursesController extends GetxController {
 
               // Create the instance of course model
               CourseModel courseModel = CourseModel(
+                courseID: MethodUtils.generatedId,
                 programId: programId,
                 courseCode: courseCodeEditingController!.text.trim(),
                 courseName: courseTitleEditingController!.text.trim(),
@@ -96,6 +253,8 @@ class CoursesController extends GetxController {
                 url: fileUrl,
                 uploadedAt: Timestamp.now(),
                 level: levelName,
+                pastQ: isPastQ,
+                isFreeBook: isFreeBook,
               );
 
               // Upload it to the firestorage
@@ -124,30 +283,6 @@ class CoursesController extends GetxController {
     }
   }
 
-  Stream<List<CourseModel>> _streamCourses() =>
-      FirebaseService.firebaseFirestore
-          .collection(firebaseCoursesCollection)
-          .snapshots()
-          .map(
-            (query) => query.docs
-                .map((course) => CourseModel.fromDocument(course))
-                .toList(),
-          );
 
-  Future<bool> isFileDownloaded(String fileName) async {
-    Directory appDocDir = await getApplicationDocumentsDirectory();
-    String filePath = '${appDocDir.path}/$fileName';
-    return File(filePath).existsSync();
-  }
-}
 
-class DownloadService {
-  final Dio _dio = Dio();
-
-  Future<void> downloadFile(String url, String fileName) async {
-    Directory appDocDir = await getApplicationDocumentsDirectory();
-    String savePath = '${appDocDir.path}/$fileName';
-
-    await _dio.download(url, savePath);
-  }
-}
+*/ 

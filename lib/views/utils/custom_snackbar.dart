@@ -7,20 +7,25 @@ class CustomSnackBar {
     required String title,
     required String message,
     required Color backgroundColor,
+    SnackPosition? snackPosition,
   }) {
-    Get.snackbar(title, message,
-        backgroundColor: backgroundColor,
-        titleText: Text(
-          title,
-          style: const TextStyle(fontSize: 16),
-        ),
-        messageText: Text(
-          message,
-          style: const TextStyle(fontSize: 16),
-        ),
-        colorText: Colors.white,
-        borderRadius: 8,
-        margin: const EdgeInsets.all(16));
+    Get.snackbar(
+      title,
+      message,
+      backgroundColor: backgroundColor,
+      titleText: Text(
+        title,
+        style: const TextStyle(fontSize: 16),
+      ),
+      messageText: Text(
+        message,
+        style: const TextStyle(fontSize: 16),
+      ),
+      colorText: Colors.white,
+      borderRadius: 8,
+      margin: const EdgeInsets.all(16),
+      snackPosition: snackPosition,
+    );
   }
 
   // static customAlertDialoag(

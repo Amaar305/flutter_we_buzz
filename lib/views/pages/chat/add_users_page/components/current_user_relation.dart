@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -26,15 +25,20 @@ class CurrentUserRelations extends StatelessWidget {
       () {
         final mutuals = controller.WeBuzzUsers.where((user) {
           if (currentUserFriends == CurrentUserFriends.mutual) {
-            return user.followers
-                    .contains(FirebaseAuth.instance.currentUser!.uid) &&
-                user.following.contains(FirebaseAuth.instance.currentUser!.uid);
+            return controller.currenttUsersFollowers.contains(user.userId) &&
+                controller.currenttUsersFollowing.contains(user.userId);
+
+            // user.followers
+            //         .contains(FirebaseAuth.instance.currentUser!.uid) &&
+            //     user.following.contains(FirebaseAuth.instance.currentUser!.uid);
           } else if (currentUserFriends == CurrentUserFriends.followers) {
-            return user.following
-                .contains(FirebaseAuth.instance.currentUser!.uid);
+            return controller.currenttUsersFollowers.contains(user.userId);
+            //  user.following
+            //     .contains(FirebaseAuth.instance.currentUser!.uid);
           } else {
-            return user.followers
-                .contains(FirebaseAuth.instance.currentUser!.uid);
+            return controller.currenttUsersFollowing.contains(user.userId);
+            // user.followers
+            //     .contains(FirebaseAuth.instance.currentUser!.uid);
           }
         }).toList();
         return ListView.builder(

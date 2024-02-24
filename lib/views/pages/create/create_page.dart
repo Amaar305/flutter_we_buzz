@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:hi_tweet/views/utils/constants.dart';
 
 import '../../widgets/create/my_iconbutton.dart';
+import 'components/app_bar.dart';
+import 'components/text_form_field.dart';
 import 'create_controller.dart';
 
 class CreateBuzzPage extends GetView<CreateBuzzController> {
@@ -17,28 +19,20 @@ class CreateBuzzPage extends GetView<CreateBuzzController> {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: kDefaultAppPadding,
+          padding: kPadding,
           child: Column(
             children: [
-              _appBar(),
+              const CreateBuzzAppBar(title: 'New Buzz'),
               Expanded(
                 child: ListView(
                   children: [
-                    TextFormField(
+                    CreateBuzzTextFormField(
                       controller: controller.textEditingController,
-                      keyboardType: TextInputType.multiline,
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'Start a buzz...',
-                      ),
-                      maxLength: 250,
-                      maxLines: 4,
                     ),
                     const SizedBox(height: 12),
                     GetBuilder<CreateBuzzController>(
                       builder: (_) {
-                        if (controller.pickedGifPath != null ||
-                            controller.pickedImagePath != null) {
+                        if (controller.pickedImagePath != null) {
                           return AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             height: controller.isImagePicked
@@ -46,29 +40,32 @@ class CreateBuzzPage extends GetView<CreateBuzzController> {
                                 : 0,
                             curve: Curves.fastEaseInToSlowEaseOut,
                             child: Stack(
+                              alignment: Alignment.topRight,
                               clipBehavior: Clip.antiAlias,
                               children: [
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(20),
                                   child: Image.file(
-                                    controller.pickedGifPath ??
-                                        controller.pickedImagePath!,
+                                    controller.pickedImagePath!,
                                     fit: BoxFit.cover,
                                     width: double.maxFinite,
                                   ),
                                 ),
                                 Positioned(
-                                  left: 300,
-                                  right: 0,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: GestureDetector(
-                                      onTap: () => controller.cancleImage(true),
-                                      child: const CircleAvatar(
-                                        radius: 15,
-                                        backgroundColor: Colors.white54,
-                                        child: Icon(Icons.close),
-                                      ),
+                                  top: 5,
+                                  right: 5,
+                                  child: Container(
+                                    height: 40,
+                                    width: 40,
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: kDefaultGrey.withOpacity(0.5),
+                                      // borderRadius: BorderRadius.circular(10),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: InkWell(
+                                      onTap: () => controller.cancleImage(),
+                                      child: const Icon(Icons.close),
                                     ),
                                   ),
                                 )
@@ -131,27 +128,6 @@ class CreateBuzzPage extends GetView<CreateBuzzController> {
             'Buzz Now',
             style: TextStyle(
                 fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _appBar() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        IconButton(
-          onPressed: () {
-            Get.back();
-          },
-          icon: const Icon(Icons.close),
-        ),
-        const Text(
-          'New Buzz',
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
           ),
         ),
       ],

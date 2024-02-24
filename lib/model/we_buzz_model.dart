@@ -1,36 +1,50 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:nb_utils/nb_utils.dart';
+
+import 'package:hi_tweet/services/firebase_service.dart';
 
 // import 'we_buzz_poll_model.dart';
 
 class WeBuzz {
-  late String id;
-  late String docId;
-  late String authorId;
-  late String originalId;
-  late String content;
-  late String location;
-  late String source;
-  late Timestamp createdAt;
-  late String buzzType;
-  late List<String> hashtags;
-  late List<String> replies;
-  late List<String> likes;
-  late List<String> views;
-  late List<String> rebuzzs;
-  late String? imageUrl;
-  late bool isRebuzz;
-  final bool isSuspended;
+  final String id;
+  final String docId;
+  final String authorId;
+  final String originalId;
+  final String content;
+  final String location;
+  final String source;
+  final String buzzType;
+  final String? imageUrl;
 
-  int reBuzzsCount;
-  int likesCount;
-  int repliesCount;
-  int savedCount;
-  int reportCount;
-  int viewsCount;
-  late bool isPublished;
-  late bool isCampusBuzz;
-  late DocumentReference? refrence;
+  final Timestamp createdAt;
+  // final Timestamp updatedPaid;
+  final List<String> hashtags;
+  final List<String> links;
+
+  final bool isRebuzz;
+  final bool isSuspended;
+  final bool isSponsor;
+  late bool expired;
+  final bool hasPaid;
+  final bool isPublished;
+  final bool isCampusBuzz;
+
+  final double? amount;
+  final String? whatsapp;
+  final String? websiteUrl;
+  final String? videoUrl;
+  final List<String>? images;
+
+  final int reBuzzsCount;
+  final int likesCount;
+  final int repliesCount;
+  final int savedCount;
+  final int viewsCount;
+  final int reportCount;
+  final int? duration;
+
+  final DocumentReference? refrence;
 
   WeBuzz({
     required this.id,
@@ -47,18 +61,24 @@ class WeBuzz {
     this.isSuspended = false,
     this.imageUrl,
     required this.originalId,
-    required this.replies,
-    required this.rebuzzs,
-    required this.likes,
-    required this.views,
     required this.isRebuzz,
     required this.likesCount,
     required this.repliesCount,
     required this.isCampusBuzz,
+    required this.links,
     this.savedCount = 0,
     this.reportCount = 0,
     this.viewsCount = 0,
     this.refrence,
+    this.isSponsor = false,
+    this.hasPaid = false,
+    this.expired = false,
+    this.images,
+    this.amount,
+    this.duration,
+    this.websiteUrl,
+    this.whatsapp,
+    this.videoUrl,
   });
 
   // Create a factory constructor for decoding from JSON
@@ -69,7 +89,7 @@ class WeBuzz {
   ) {
     return WeBuzz(
       id: json['id'],
-      docId: json['docId'],
+      docId: docId,
       authorId: json['authorId'],
       originalId: json['originalId'],
       content: json['content'],
@@ -78,10 +98,6 @@ class WeBuzz {
       createdAt: json['createdAt'],
       buzzType: json['buzzType'],
       hashtags: List<String>.from(json['hashtags']),
-      replies: List<String>.from(json['replies']),
-      rebuzzs: List<String>.from(json['rebuzzs']),
-      likes: List<String>.from(json['likes']),
-      views: List<String>.from(json['views']),
       imageUrl: json['imageUrl'],
       isRebuzz: json['rebuzz'],
       reBuzzsCount: json['reBuzzsCount'],
@@ -93,14 +109,44 @@ class WeBuzz {
       savedCount: json['savedCount'],
       refrence: refrence,
       isCampusBuzz: json['isCampusBuzz'],
+      isSponsor: json['isSponsor'] as bool,
+      links: List<String>.from(json['links']),
+      images: json['images'] != null ? List<String>.from(json['images']) : null,
+      amount: json['amount'],
+      duration: json['duration'],
+      expired: json['expired'],
+      hasPaid: json['hasPaid'],
+      websiteUrl: json['websiteUrl'],
+      whatsapp: json['whatsapp'],
+      videoUrl: json['videoUrl'],
+      reportCount: json['reportCount'],
     );
+  }
+
+  bool validSponsor() {
+    DateTime currentDate = DateTime.now();
+    bool isValid = false;
+
+    if (hasPaid && isSponsor) {
+      DateTime sponsorEndDate =
+          createdAt.toDate().add(Duration(days: duration! * 7));
+
+      if (sponsorEndDate.isAfter(currentDate)) {
+        isValid = true;
+      } else {
+        // Sponsorship has expired, update the 'expired' field
+        expired = true;
+        updateExpiredStatusInFirestore(docId);
+      }
+    }
+
+    return isValid;
   }
 
   // Create a factory constructor for decoding from DocumentSnapshot
   factory WeBuzz.fromDocumentSnapshot(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     data['docId'] = doc.id;
-    // doc.reference
     final refrence = doc.reference;
     return WeBuzz.fromJson(data, doc.id, refrence);
   }
@@ -119,10 +165,6 @@ class WeBuzz {
       'buzzType': buzzType,
       'hashtags': hashtags,
       'originalId': originalId,
-      'replies': replies,
-      'rebuzzs': rebuzzs,
-      'likes': likes,
-      'views': views,
       'rebuzz': isRebuzz,
       'likesCount': likesCount,
       'repliesCount': repliesCount,
@@ -132,6 +174,17 @@ class WeBuzz {
       "isSuspended": isSuspended,
       "savedCount": savedCount,
       "viewsCount": viewsCount,
+      "isSponsor": isSponsor,
+      "links": links,
+      "images": images,
+      "amount": amount,
+      "duration": duration,
+      "hasPaid": hasPaid,
+      "websiteUrl": websiteUrl,
+      "whatsapp": whatsapp,
+      "videoUrl": videoUrl,
+      "expired": expired,
+      "reportCount": reportCount,
     };
   }
 
@@ -143,51 +196,75 @@ class WeBuzz {
     String? content,
     String? location,
     String? source,
-    Timestamp? createdAt,
     String? buzzType,
-    List<String>? hashtags,
-    List<String>? views,
-    List<String>? replies,
-    List<String>? rebuzzs,
-    List<String>? likes,
     String? imageUrl,
-    bool? rebuzz,
+    Timestamp? createdAt,
+    List<String>? hashtags,
+    List<String>? links,
+    bool? isRebuzz,
     bool? isSuspended,
-    int? reBuzzsCount,
-    int? likesCount,
-    int? viewsCount,
-    int? repliesCount,
-    int? savedCount,
-    int? reportCount,
+    bool? isSponsor,
+    bool? expired,
+    bool? hasPaid,
     bool? isPublished,
     bool? isCampusBuzz,
+    double? amount,
+    String? whatsapp,
+    String? websiteUrl,
+    String? videoUrl,
+    List<String>? images,
+    int? reBuzzsCount,
+    int? likesCount,
+    int? repliesCount,
+    int? savedCount,
+    int? viewsCount,
+    int? reportCount,
+    int? duration,
+    DocumentReference? refrence,
   }) {
     return WeBuzz(
       id: id ?? this.id,
-      savedCount: savedCount ?? this.savedCount,
-      viewsCount: viewsCount ?? this.viewsCount,
-      reportCount: reportCount ?? this.reportCount,
-      isPublished: isPublished ?? this.isPublished,
-      isCampusBuzz: isCampusBuzz ?? this.isCampusBuzz,
-      isSuspended: isSuspended ?? this.isSuspended,
       docId: docId ?? this.docId,
       authorId: authorId ?? this.authorId,
       originalId: originalId ?? this.originalId,
       content: content ?? this.content,
       location: location ?? this.location,
       source: source ?? this.source,
-      createdAt: createdAt ?? this.createdAt,
       buzzType: buzzType ?? this.buzzType,
-      hashtags: hashtags ?? this.hashtags,
-      replies: replies ?? this.replies,
-      views: views ?? this.views,
-      rebuzzs: rebuzzs ?? this.rebuzzs,
-      likes: likes ?? this.likes,
       imageUrl: imageUrl ?? this.imageUrl,
-      isRebuzz: rebuzz ?? isRebuzz,
+      createdAt: createdAt ?? this.createdAt,
+      hashtags: hashtags ?? this.hashtags,
+      links: links ?? this.links,
+      isRebuzz: isRebuzz ?? this.isRebuzz,
+      isSuspended: isSuspended ?? this.isSuspended,
+      isSponsor: isSponsor ?? this.isSponsor,
+      expired: expired ?? this.expired,
+      hasPaid: hasPaid ?? this.hasPaid,
+      isPublished: isPublished ?? this.isPublished,
+      isCampusBuzz: isCampusBuzz ?? this.isCampusBuzz,
+      amount: amount ?? this.amount,
+      whatsapp: whatsapp ?? this.whatsapp,
+      websiteUrl: websiteUrl ?? this.websiteUrl,
+      videoUrl: videoUrl ?? this.videoUrl,
+      images: images ?? this.images,
       reBuzzsCount: reBuzzsCount ?? this.reBuzzsCount,
       likesCount: likesCount ?? this.likesCount,
       repliesCount: repliesCount ?? this.repliesCount,
+      savedCount: savedCount ?? this.savedCount,
+      viewsCount: viewsCount ?? this.viewsCount,
+      reportCount: reportCount ?? this.reportCount,
+      duration: duration ?? this.duration,
+      refrence: refrence ?? this.refrence,
     );
+  }
+}
+
+void updateExpiredStatusInFirestore(String docID) async {
+  try {
+    await FirebaseService.updateBuzz(docID, {
+      "expired": true,
+    });
+  } catch (e) {
+    log("Error tying to update Status");
   }
 }

@@ -1,95 +1,94 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:nb_utils/nb_utils.dart';
 
-import '../../../model/we_buzz_user_model.dart';
-import '../../widgets/custom_app_bar.dart';
-import '../../widgets/home/reusable_card.dart';
-import '../dashboard/my_app_controller.dart';
-import '../home/home_controller.dart';
+import '../../../model/we_buzz_model.dart';
+import '../../utils/constants.dart';
+import '../../widgets/home/cards/reusable_card.dart';
+import '../../widgets/setting/custom_setting_title.dart';
+import 'controllers/save_page_controller.dart';
 
-class SaveBuzzPage extends StatelessWidget {
+class SaveBuzzPage extends GetView<SaveBuzzController> {
   const SaveBuzzPage({super.key});
   static const String routeName = '/save-post-page';
 
   @override
   Widget build(BuildContext context) {
-    final deviceHeight = MediaQuery.of(context).size.height;
-    final deviceWidth = MediaQuery.of(context).size.height;
-    return _buildUI(deviceHeight, deviceWidth);
-  }
-
-  Widget _buildUI(double deviceHeight, double deviceWidth) {
     return Scaffold(
-      body: SafeArea(
-        child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: deviceWidth * 0.03,
-            vertical: deviceHeight * 0.02,
-          ),
-          // width: deviceWidth * 0.97,
-          child: Column(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              CustomAppBar(
-                'Saved buzzes',
-                secondaryAction: const BackButton(),
-              ),
-              _webuzzList()
-            ],
-          ),
-        ),
+      appBar: AppBar(
+        title: const CustomSettingTitle(title: 'Saved Buzz'),
+      ),
+      body: Padding(
+        padding: kPadding,
+        child: _webuzzList(),
       ),
     );
   }
 
   Widget _webuzzList() {
-    return Expanded(
-      child: GetX<HomeController>(
-        builder: (_) {
-          WeBuzzUser currentUser =
-              AppController.instance.weBuzzUsers.firstWhere(
-            (user) => user.userId == FirebaseAuth.instance.currentUser!.uid,
-          );
-          if (HomeController.instance.weeBuzzItems
-              .where(
-                (buzz) =>
-                    buzz.isPublished &&
-                    currentUser.savedBuzz.contains(buzz.docId),
-              )
-              .isNotEmpty) {
-            return ListView.builder(
-              itemCount: HomeController.instance.weeBuzzItems
-                  .where(
-                    (buzz) =>
-                        buzz.isPublished &&
-                        currentUser.savedBuzz.contains(buzz.docId),
-                  )
-                  .length,
-              itemBuilder: (context, index) {
-                return ReusableCard(
-                  normalWebuzz: HomeController.instance.weeBuzzItems
-                      .where(
-                        (buzz) =>
-                            buzz.isPublished &&
-                            currentUser.savedBuzz.contains(buzz.docId),
-                      )
-                      .toList()[index],
-                );
+    return GetBuilder<SaveBuzzController>(
+      builder: (_) {
+        if (controller.ids.isEmpty) {
+          return const CircularProgressIndicator(
+            strokeWidth: 0.5,
+          ).center();
+        } else {
+          return ListView.builder(
+            itemCount: controller.ids.length,
+            itemBuilder: (context, index) => StreamBuilder<WeBuzz>(
+              stream: controller.streamBuzz(controller.ids[index]),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const SizedBox();
+                if (snapshot.data == null) return const SizedBox();
+                return ReusableCard(normalWebuzz: snapshot.data!);
               },
-            );
-          } else {
-            return const Center(
-              child: Text(
-                'You haven\'t save any buzz!',
-                style: TextStyle(fontSize: 20),
-              ),
-            );
-          }
-        },
-      ),
+            ),
+          );
+        }
+      },
     );
+    // GetX<HomeController>(
+    //   builder: (controller) {
+    //     WeBuzzUser? currentUser = AppController.instance.currentUser;
+
+    //     if (currentUser == null) return const SizedBox();
+
+    //     final publishedBuzzList = controller.weeBuzzItems
+    //         .where((buzz) =>
+    //             buzz.isPublished && currentUser.savedBuzz.contains(buzz.docId))
+    //         .toList();
+
+    //     if (publishedBuzzList.isNotEmpty) {
+    //       return ListView.builder(
+    //         itemCount: publishedBuzzList.length,
+    //         itemBuilder: (context, index) {
+    //           final buzz = publishedBuzzList[index];
+
+    //           if (buzz.validSponsor()) {
+    //             return SponsorCard(normalWebuzz: buzz);
+    //           }
+
+    //           if (!buzz.isSponsor) {
+    //             if (currentUser.blockedUsers.contains(buzz.authorId)) {
+    //               return const SizedBox();
+    //             } else {
+    //               return ReusableCard(
+    //                 normalWebuzz: buzz,
+    //               );
+    //             }
+    //           }
+    //           return null;
+    //         },
+    //       );
+    //     } else {
+    //       return const Center(
+    //         child: Text(
+    //           'You haven\'t save any buzz!',
+    //           style: TextStyle(fontSize: 20),
+    //         ),
+    //       );
+    //     }
+    //   },
+    // );
   }
 }

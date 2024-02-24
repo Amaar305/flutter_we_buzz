@@ -1,97 +1,144 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:full_screen_image/full_screen_image.dart';
 import 'package:get/get.dart';
 
 import '../../utils/constants.dart';
-import '../../widgets/home/my_button.dart';
+import '../../widgets/home/my_buttons.dart';
+import '../../widgets/home/my_drop_button.dart';
 import '../../widgets/home/my_textfield.dart';
 import '../dashboard/my_app_controller.dart';
+import '../documents/levels/levels_list.dart';
+import 'controllers/edit_profile_controller.dart';
 
-class EditProfilePage extends StatefulWidget {
+class EditProfilePage extends GetView<EditProfileController> {
   const EditProfilePage({super.key});
   static const routeName = '/edit-profile-page';
 
   @override
-  State<EditProfilePage> createState() => _EditProfilePageState();
-}
-
-class _EditProfilePageState extends State<EditProfilePage> {
-  final _formKey = GlobalKey<FormState>();
-  @override
   Widget build(BuildContext context) {
-    final controller = AppController.instance;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Profile'),
       ),
       body: Padding(
-        padding: kDefaultAppPadding,
+        padding: kPadding,
         child: Form(
-          key: _formKey,
+          key: controller.formKey,
           child: Center(
             child: SingleChildScrollView(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  GetBuilder<AppController>(builder: (_) {
-                    if (controller.isImagePicked &&
-                        controller.pickedImagePath != null) {
-                      return CircleAvatar(
-                        backgroundImage: FileImage(controller.pickedImagePath!),
-                        radius: MediaQuery.of(context).size.height * 0.08,
-                      );
-                    } else {
-                      return GestureDetector(
-                        onTap: () {
-                          controller.uploadDeleteUpdateUserProfileUrl();
-                        },
-                        child: Stack(
-                          children: [
-                            CircleAvatar(
+                  //  Profile image
+                  Stack(
+                    children: [
+                      GetBuilder<EditProfileController>(
+                        builder: (_) {
+                          if (controller.isImagePicked &&
+                              controller.pickedImagePath != null) {
+                            return CircleAvatar(
+                              backgroundImage:
+                                  FileImage(controller.pickedImagePath!),
                               radius: MediaQuery.of(context).size.height * 0.08,
-                              backgroundImage: CachedNetworkImageProvider(
-                                controller.currentUser != null
-                                    ? controller.currentUser!.imageUrl != null
-                                        ? controller.currentUser!.imageUrl!
-                                        : 'https://firebasestorage.googleapis.com/v0/b/my-hi-tweet.appspot.com/o/933-9332131_profile-picture-default-png.png?alt=media&token=7c98e0e7-c3bf-454e-8e7b-b0ec4b2ec900&_gl=1*1w37gdj*_ga*MTUxNDc4MTA2OC4xNjc1OTQwOTc4*_ga_CW55HF8NVT*MTY5ODMxOTk3Mi42MS4xLjE2OTgzMjAwMzEuMS4wLjA.'
-                                    : 'https://firebasestorage.googleapis.com/v0/b/my-hi-tweet.appspot.com/o/933-9332131_profile-picture-default-png.png?alt=media&token=7c98e0e7-c3bf-454e-8e7b-b0ec4b2ec900&_gl=1*1w37gdj*_ga*MTUxNDc4MTA2OC4xNjc1OTQwOTc4*_ga_CW55HF8NVT*MTY5ODMxOTk3Mi42MS4xLjE2OTgzMjAwMzEuMS4wLjA.',
-                              ),
-                            ),
-                            const Positioned(
+                            );
+                          } else {
+                            return FullScreenWidget(
+                              disposeLevel: DisposeLevel.Medium,
+                              backgroundIsTransparent: true,
                               child: CircleAvatar(
-                                child: Icon(Icons.image_outlined),
+                                radius:
+                                    MediaQuery.of(context).size.height * 0.08,
+                                backgroundImage: CachedNetworkImageProvider(
+                                  AppController.instance.currentUser != null
+                                      ? AppController.instance.currentUser!
+                                                  .imageUrl !=
+                                              null
+                                          ? AppController
+                                              .instance.currentUser!.imageUrl!
+                                          : defaultProfileImage
+                                      : defaultProfileImage,
+                                ),
                               ),
-                            )
-                          ],
+                            );
+                          }
+                        },
+                      ),
+                      Positioned(
+                        child: GestureDetector(
+                          onTap: () {
+                            controller.uploadDeleteUpdateUserProfileUrl();
+                          },
+                          child: const CircleAvatar(
+                            child: Icon(Icons.image_outlined),
+                          ),
                         ),
-                      );
-                    }
-                  }),
-                  MyTextField(
-                    controller: controller.bioEditingController!,
-                    hintext: 'Bio',
+                      ),
+                    ],
                   ),
-                  MyTextField(
+
+                  //  Bio field
+                  MyInputField(
+                    controller: controller.bioEditingController,
+                    hintext: 'Bio',
+                    iconData: Icons.info,
+                    label: 'Bio',
+                  ),
+
+                  //  Name field
+                  MyInputField(
                     controller: controller.editNameEditingController,
                     hintext: 'Name',
+                    label: 'Full Name',
+                    iconData: Icons.person,
                     validator: (value) {
-                      if (value!.isEmpty) {
-                        return 'Name cannot be empty!';
+                      if (value!.length < 5) {
+                        return 'Name must be greather than 5';
                       }
-                      if (value.length < 6 || value.length > 12) {
-                        return 'Name should be > 6 and < 12 characters';
+
+                      if (value.length > 15) {
+                        return 'Name must be less than 15';
                       }
                       return null;
                     },
                   ),
-                  MyTextField(
-                    controller: controller.phoneEditingController!,
+
+                  //  Username field
+                  MyInputField(
+                    controller: controller.usernameEditingController,
+                    hintext: 'Username',
+                    label: 'Your Username',
+                    iconData: Icons.supervised_user_circle,
+                    validator: (value) {
+                      if (value!.length < 5) {
+                        return 'Username must be greater than 6 characters';
+                      }
+                      if (value.length > 15) {
+                        return 'Username must be less than 20 characters';
+                      }
+
+                      final isExit = AppController.instance.weBuzzUsers.any(
+                          (user) =>
+                              user.username == value &&
+                              user.username !=
+                                  AppController.instance.currentUser!.username);
+                      if (isExit) {
+                        return 'Username has been taken';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  // Phone no. field
+                  MyInputField(
+                    controller: controller.phoneEditingController,
                     hintext: 'Phone',
+                    label: 'Phone No',
+                    iconData: Icons.phone,
                     keyboardType: TextInputType.phone,
                     validator: (value) {
-                      if (value!.isEmpty) {
-                        return 'Phone cannot be empty!';
+                      if (!value!.isPhoneNumber) {
+                        return 'Not a phone number!';
                       }
                       if (value.length < 11 || value.length > 11) {
                         return 'Invalid phone number!';
@@ -100,43 +147,37 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     },
                   ),
                   const SizedBox(height: 12),
+
+                  //  Select level
                   GetBuilder<AppController>(
-                    builder: (controller) {
-                      final me = controller.weBuzzUsers.firstWhere((user) =>
-                          user.userId ==
-                          FirebaseAuth.instance.currentUser!.uid);
-                      return DropdownButtonFormField<String>(
-                        value: me.level == null
-                            ? null
-                            : _levels.contains(me.level)
-                                ? me.level
-                                : null,
-                        items: _levels.map((level) {
-                          return DropdownMenuItem<String>(
-                            value: level,
-                            child: Text(level),
-                          );
-                        }).toList(),
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
+                    builder: (control) {
+                      final me = control.currentUser!;
+
+                      return MyDropDownButtonForm(
+                        initialValue:
+                            levels.contains(me.level) ? me.level : null,
+                        items: levels,
+                        label: 'Lavel',
+                        hintext: 'Select Level',
                         onChanged: (value) {
-                          controller.lavelEditingController!.text = value!;
+                          controller.lavelEditingController.text = value!;
                         },
                       );
                     },
                   ),
                   const SizedBox(height: 12),
-                  MyButton(
-                    text: 'Edit',
+
+                  //  Update button
+                  MyRegistrationButton(
+                    title: 'Edit',
+                    secondaryColor: Colors.white,
                     onPressed: () {
-                      final isValid = _formKey.currentState!.validate();
+                      final isValid =
+                          controller.formKey.currentState!.validate();
                       FocusScope.of(context).unfocus();
 
                       if (isValid) {
-                        _formKey.currentState!.save();
+                        controller.formKey.currentState!.save();
                         controller.editUserInfo();
                       }
                     },
@@ -150,11 +191,3 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 }
-
-final List<String> _levels = [
-  '100',
-  '200',
-  '300',
-  '400',
-  '500',
-];

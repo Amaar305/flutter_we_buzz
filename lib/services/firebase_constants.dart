@@ -1,16 +1,24 @@
-const String firebaseWeBuzzCollection = 'we_buzz';
 const String firebaseWeBuzzUserCollection = 'users';
+const String firebaseFollowersCollection = 'followers';
+const String firebaseSavedBuzzCollection = 'save_buzz';
+const String firebaseWeBuzzCollection = 'we_buzz';
 const String firebaseReBuzzCollection = 'rebuzz';
 const String firebaseRepliesCollection = 'replies';
 const String firebaseLikesPostCollection = 'likes';
-const String firebaseReportBuzzCollection = 'reportBuzz';
+const String firebaseViewsCollection = 'views';
+const String firebaseReportCollection = 'reports';
 const String firebaseMessageCollection = 'messages';
 const String firebaseChatCollection = 'chats';
-const String firebaseMyUsersCollection = 'my_users';
+const String firebaseNotificationCollection = 'notifications';
 const String firebaseProgramsCollection = 'progams';
 const String firebaseCoursesCollection = 'courses';
-const String firebaseSponsorUserCollection = 'sponsor_users';
-const String firebaseSponsorshipCollection = 'sponsorship';
+const String firebaseLectureNotesCollection = 'lecture_notes';
+const String firebaseFacultyCollection = 'faculties';
+const String firebaseAnnouncementCollection = 'announcement';
+const String firebaseTransactionCollection = 'transactions';
+const String firebaseSponsorTrackerCollection = 'sponsor_tarcker';
+const String firebaseChatWithStaffCollection = 'chat_staff';
+const String firebaseReportBugsCollection = 'report_bugs';
 
-const String firebaseMessagingApiKey =
-    'AAAAJFTH-o0:APA91bGRklMgyJwJJ2R2yss6N8HJwJjHRroVPALk6VPit3vMuXWqs7w9ddaL9WC5UxpFyfwkOgLrhG2phEDwL3N7RBxiDyiDjkWppOirvxU6JrV-TCuD_957P23g2dENJqIfidPvz71i';
+const String googleApiKey = 'AIzaSyBlygDbsl7r0K0Z68hdgDR73ZDu9YMPDfo';
+// https://safebrowsing.googleapis.com/v4/threatMatches:find?key=AIzaSyBlygDbsl7r0K0Z68hdgDR73ZDu9YMPDfo

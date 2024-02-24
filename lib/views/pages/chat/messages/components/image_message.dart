@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:full_screen_image/full_screen_image.dart';
 
-import '../../../../../model/chat_message_model.dart';
+import '../../../../../model/message_model.dart';
 
 class ImageMessage extends StatelessWidget {
   const ImageMessage({super.key, required this.message});

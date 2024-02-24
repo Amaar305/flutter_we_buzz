@@ -1,24 +1,25 @@
-import 'package:firebase_auth/firebase_auth.dart';
-
 import '../../../../../model/we_buzz_user_model.dart';
+import '../add_users_controller.dart';
 
 bool shouldDisplayOnlineStatus(WeBuzzUser targetUser) {
   var onlineStatusIndicator = targetUser.onlineStatusIndicator;
-
-  final currentUserID = FirebaseAuth.instance.currentUser!.uid;
+  var currenttUsersFollowers =
+      AddUsersController.instance.currenttUsersFollowers;
+  var currenttUsersFollowing =
+      AddUsersController.instance.currenttUsersFollowing;
 
   // Display the DM button based on DM privacy settings
   if (onlineStatusIndicator == DirectMessagePrivacy.everyone) {
     return true;
   } else if (onlineStatusIndicator == DirectMessagePrivacy.followers &&
-      targetUser.followers.contains(currentUserID)) {
+      currenttUsersFollowing.contains(targetUser.userId)) {
     return true;
   } else if (onlineStatusIndicator == DirectMessagePrivacy.following &&
-      targetUser.following.contains(currentUserID)) {
+      currenttUsersFollowers.contains(targetUser.userId)) {
     return true;
   } else if (onlineStatusIndicator == DirectMessagePrivacy.mutual &&
-      targetUser.followers.contains(currentUserID) &&
-      targetUser.following.contains(currentUserID)) {
+      currenttUsersFollowing.contains(targetUser.userId) &&
+      currenttUsersFollowers.contains(targetUser.userId)) {
     return true;
   }
 

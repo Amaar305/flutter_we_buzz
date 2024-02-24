@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hi_tweet/services/firebase_service.dart';
+import 'package:nb_utils/nb_utils.dart';
 
 import '../../../../model/we_buzz_model.dart';
-import '../../../widgets/home/reusable_card.dart';
-import '../home_controller.dart';
+import '../../../widgets/home/cards/reusable_card.dart';
+import '../../../widgets/home/cards/sponsor_card_widget.dart';
 import 'reply_controller.dart';
-
-late double _deviceHeight;
-late double _deviceWidth;
 
 class RepliesPage extends GetView<ReplyController> {
   const RepliesPage({super.key});
@@ -16,22 +15,21 @@ class RepliesPage extends GetView<ReplyController> {
   @override
   Widget build(BuildContext context) {
     final webuzz = ModalRoute.of(context)!.settings.arguments as WeBuzz;
-    _deviceHeight = MediaQuery.of(context).size.height;
-    _deviceWidth = MediaQuery.of(context).size.width;
-    return _buildUI(webuzz);
+    // Device's sizes
+    final deviceHeight = MediaQuery.sizeOf(context).height;
+    final deviceWidth = MediaQuery.sizeOf(context).width;
+    return _buildUI(webuzz, deviceWidth, deviceHeight);
   }
 
-  Widget _buildUI(WeBuzz webuzz) {
+  Widget _buildUI(WeBuzz webuzz, deviceWidth, deviceHeight) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reply'),
+        title: const Text('Buzz'),
       ),
       body: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: _deviceWidth * 0.03,
-          vertical: _deviceHeight * 0.02,
-        ),
-        width: _deviceWidth * 0.97,
+        padding: EdgeInsets.symmetric(horizontal: deviceWidth * 0.03),
+        // height: deviceHeight * 0.90,
+        // width: deviceWidth * 0.97,
         child: Column(
           mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.start,
@@ -47,35 +45,71 @@ class RepliesPage extends GetView<ReplyController> {
 
   Widget _repliesList(WeBuzz webuzz) {
     return Expanded(
-      child: FutureBuilder(
-        future: HomeController.instance.getReplies(webuzz),
+      child: StreamBuilder(
+        stream: FirebaseService.getReplies(webuzz),
         builder: (context, snapshot) {
           switch (snapshot.connectionState) {
             // if data is loading
             case ConnectionState.waiting:
             case ConnectionState.none:
-              return const SizedBox();
+              return const Center(child: CircularProgressIndicator());
 
             // if some or all data is loaded then show it
             case ConnectionState.active:
             case ConnectionState.done:
               final buzzes = snapshot.data;
+
               if (buzzes != null) {
                 buzzes.insert(0, webuzz);
                 if (buzzes.isNotEmpty) {
                   return ListView.builder(
                     itemCount: buzzes.length,
                     itemBuilder: (context, index) {
+                      final buzz = buzzes[index];
+
                       if (index == 0) {
-                        return ReusableCard(
-                          normalWebuzz: buzzes[index],
-                        );
+                        if (buzz.validSponsor()) {
+                          return SponsorCard(
+                            normalWebuzz: buzz,
+                            originalId: buzz.docId,
+                          );
+                        }
+
+                        if (!buzz.isSponsor) {
+                          return ReusableCard(
+                            normalWebuzz: buzz,
+                            originalId: buzz.docId,
+                          );
+                        }
                       } else {
-                        return ReusableCard(
-                          normalWebuzz: buzzes[index],
-                          snapShotWebuzz: buzzes[index],
-                        );
+                        if (buzz.validSponsor()) {
+                          return SponsorCard(
+                            normalWebuzz: buzz,
+                            snapShotWebuzz: buzz,
+                            originalId: buzzes[0].docId,
+                          );
+                        }
+
+                        if (!buzz.isSponsor) {
+                          return ReusableCard(
+                            normalWebuzz: buzz,
+                            snapShotWebuzz: buzz,
+                            originalId: buzzes[0].docId,
+                          );
+                        }
                       }
+                      return null;
+
+                      // if (index == 0) {
+                      //   return ReusableCard(
+                      //     normalWebuzz: buzzes[index],
+                      //   );
+                      // } else {
+                      //   return ReusableCard(
+                      //     normalWebuzz: buzzes[index],
+                      //     snapShotWebuzz: buzzes[index],
+                      //   );
+                      // }
                     },
                   );
                 } else {
@@ -87,7 +121,10 @@ class RepliesPage extends GetView<ReplyController> {
                   );
                 }
               } else {
-                return const SizedBox();
+                return const Text(
+                  'Couldn\'t load comments for this buzz',
+                  style: TextStyle(fontSize: 18),
+                ).center();
               }
           }
         },
@@ -104,12 +141,14 @@ class RepliesPage extends GetView<ReplyController> {
             child: TextFormField(
               controller: controller.textEditingController,
               keyboardType: TextInputType.multiline,
-              maxLines: null,
+              // maxLines: null,
+              maxLength: 200,
               decoration: InputDecoration(
-                  hintText: 'Reply here...',
-                  hintStyle: TextStyle(
-                      color: Theme.of(Get.context!).colorScheme.primary),
-                  border: InputBorder.none),
+                hintText: 'Reply here...',
+                hintStyle: TextStyle(
+                    color: Theme.of(Get.context!).colorScheme.primary),
+                border: InputBorder.none,
+              ),
             ),
           ),
           // Adding some space
@@ -118,7 +157,7 @@ class RepliesPage extends GetView<ReplyController> {
           ),
           MaterialButton(
             onPressed: () async {
-              controller.reply(weBuzz);
+              await controller.reply(weBuzz);
             },
             shape: const CircleBorder(),
             color: Theme.of(Get.context!).colorScheme.primary,

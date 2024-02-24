@@ -1,8 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../model/chat_model.dart';
+import '../../../../services/firebase_constants.dart';
+import '../../../../services/firebase_service.dart';
 import '../../../pages/chat/group_chat_info/group_chat_info.dart';
 
 class GroupChatAppBar extends StatelessWidget {
@@ -61,10 +65,52 @@ class GroupChatAppBar extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 2),
-              const Text(
-                'Group',
-                style: TextStyle(fontSize: 13),
-              )
+              StreamBuilder<ChatConversation>(
+                stream: FirebaseService.firebaseFirestore
+                    .collection(firebaseChatCollection)
+                    .doc(chat.uid)
+                    .snapshots()
+                    .map(
+                  (chatData) {
+                    return ChatConversation(
+                      uid: chatData.id,
+                      currentUserId: FirebaseAuth.instance.currentUser != null
+                          ? FirebaseAuth.instance.currentUser!.uid
+                          : '',
+                      group: chatData['is_group'],
+                      activity: chatData['is_activity'],
+                      members: [],
+                      createdAt: chatData['created_at'],
+                      messages: [],
+                      groupTitle: chatData['group_title'],
+                      createdBy: chatData['created_by'],
+                      recentTime: Timestamp.now(),
+                    );
+                  },
+                ),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData ||
+                      snapshot.hasError ||
+                      snapshot.data == null) {
+                    return const Text(
+                      'Group',
+                      style: TextStyle(fontSize: 13),
+                    );
+                  }
+                  if (snapshot.data!.activity) {
+                    return const Text(
+                      'typing...',
+                      style:
+                          TextStyle(fontSize: 13, fontStyle: FontStyle.italic),
+                    );
+                  } else {
+                    return const Text(
+                      'Group',
+                      style: TextStyle(fontSize: 13),
+                    );
+                  }
+                },
+              ),
             ],
           ),
         ],

@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 import 'package:hi_tweet/model/message_enum_type.dart';
 import 'package:nb_utils/nb_utils.dart';
 
-import '../../../../model/chat_message_model.dart';
+import '../../../../model/message_model.dart';
 import '../../../../model/we_buzz_user_model.dart';
 import '../../../../services/firebase_constants.dart';
 import '../../../../services/firebase_service.dart';
@@ -16,12 +16,20 @@ import '../add_users_page/add_users_controller.dart';
 class GroupChatInfoController extends GetxController {
   static final GroupChatInfoController instance = Get.find();
 
+  RxList<String> currenttUsersFollowers = RxList<String>([]);
+  RxList<String> currenttUsersFollowing = RxList<String>([]);
+
   late List<WeBuzzUser> _selectedUsers;
   late List<WeBuzzUser> _currentMembers;
 
   @override
   void onInit() {
     super.onInit();
+
+    currenttUsersFollowers.bindStream(FirebaseService.streamFollowers(
+        FirebaseAuth.instance.currentUser!.uid));
+    currenttUsersFollowing.bindStream(FirebaseService.streamFollowers(
+        FirebaseAuth.instance.currentUser!.uid));
 
     _selectedUsers = [];
     _currentMembers = [];
@@ -298,8 +306,8 @@ class GroupChatInfoController extends GetxController {
 // Because admin can only add their friends in the group, we gonna get all his mutual friends
     final mutual = AppController.instance.weBuzzUsers
         .where((user) =>
-            user.followers.contains(FirebaseAuth.instance.currentUser!.uid) ||
-            user.following.contains(FirebaseAuth.instance.currentUser!.uid))
+            currenttUsersFollowers.contains(user.userId) ||
+            currenttUsersFollowing.contains(user.userId))
         .toList();
 
     // The sorted list will gonna be all the admin's mutual friends except those that are in the group already

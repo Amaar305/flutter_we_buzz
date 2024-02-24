@@ -20,31 +20,43 @@ class BasicInfoWidget extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 23,
-                backgroundColor:
-                    Theme.of(context).colorScheme.primary.withOpacity(0.7),
-                child: Icon(iconData),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(color: Colors.grey.shade400, fontSize: 17),
-                  ),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                ],
-              ),
-            ],
+          Flexible(
+            child: Wrap(
+              direction: Axis.horizontal,
+              children: [
+                // Icon
+                CircleAvatar(
+                  radius: 23,
+                  backgroundColor:
+                      Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                  child: Icon(iconData),
+                ),
+
+                // Extra space
+                const SizedBox(width: 10),
+
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style:
+                          TextStyle(color: Colors.grey.shade400, fontSize: 17),
+                    ),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
           if (trailing != null) trailing!
         ],

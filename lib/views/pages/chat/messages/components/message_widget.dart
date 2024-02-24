@@ -1,10 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-
-import '../../../../../model/chat_message_model.dart';
+import 'package:nb_utils/nb_utils.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
+import '../../../../../model/chat_model.dart';
+import '../../../../../model/message_model.dart';
 import '../../../../../model/message_enum_type.dart';
 
 // constants
@@ -28,11 +31,13 @@ class Message extends StatelessWidget {
     required this.chatID,
     required this.user,
     required this.isGroup,
+    required this.conversation,
   });
   final MessageModel message;
   final String chatID;
   final WeBuzzUser user;
   final bool isGroup;
+  final ChatConversation conversation;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +48,9 @@ class Message extends StatelessWidget {
     if (message.status == MessageStatus.notView && !isMe) {
       MessageController.instance.updateChatMessageRead(chatID, message.docID);
       // TODO:update message read for group but make sure every member view the chat
+    } else {
+      conversation.updateReadStatus(
+          message.docID, FirebaseAuth.instance.currentUser!.uid);
     }
     Widget messageContaint(MessageModel message) {
       switch (message.type) {
@@ -69,6 +77,7 @@ class Message extends StatelessWidget {
       child: Row(
         mainAxisAlignment:
             isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe) ...[
             CircleAvatar(
@@ -79,12 +88,14 @@ class Message extends StatelessWidget {
             ),
             const SizedBox(width: kDefaultPadding / 2),
           ],
-          InkWell(
-            borderRadius: message.type == MessageType.text
-                ? BorderRadius.circular(30)
-                : null,
-            onLongPress: () => _showBottomSheet(isMe, context),
-            child: messageContaint(message),
+          Flexible(
+            child: InkWell(
+              borderRadius: message.type == MessageType.text
+                  ? BorderRadius.circular(30)
+                  : null,
+              onLongPress: () => _showBottomSheet(isMe, context),
+              child: messageContaint(message),
+            ),
           ),
           if (isMe && !isGroup) MessageStatusDot(status: message.status)
         ],
@@ -150,21 +161,37 @@ class Message extends StatelessWidget {
                 ),
                 name: 'Save Image',
                 onTap: () async {
-                  // try {
-                  //   log(message.msg);
-                  //   await GallerySaver.saveImage(widget.message.msg,
-                  //           albumName: "Campus Connect")
-                  //       .then((success) {
-                  //     Navigator.pop(context);
+                  try {
+                    // log(message.content);
+                    // await ImageGallerySaver.saveImage().then((success) {
+                    //   Navigator.pop(context);
 
-                  //     // if (success != null && success) {
-                  //     //   Dialogs.showSnackbar(
-                  //     //       context, "Image Successifully Saved");
-                  //     // }
-                  //   });
-                  // } catch (e) {
-                  //   log("Error While Saving Image $e");
-                  // }
+                    //   // if (success != null && success) {
+                    //   //   Dialogs.showSnackbar(
+                    //   //       context, "Image Successifully Saved");
+                    //   // }
+                    // });
+
+                    var response = await Dio().get(
+                      message.content,
+                      options: Options(
+                        responseType: ResponseType.bytes,
+                      ),
+                    );
+
+                    final result = await ImageGallerySaver.saveImage(
+                      Uint8List.fromList(response.data),
+                      quality: 80,
+                    );
+                    if (result['isSuccess']) toast('Image Successifully Saved');
+                    await Future.delayed(const Duration(milliseconds: 50));
+
+                    Get.back();
+                    log(result);
+                  } catch (e) {
+                    toast('Error While Saving Image');
+                    log("Error While Saving Image $e");
+                  }
                 },
               ),
 
@@ -222,7 +249,7 @@ class Message extends StatelessWidget {
                 color: Theme.of(context).colorScheme.primary,
               ),
               name: 'Sent At ${MyDateUtil.getMessageTime(
-                time: message.sentTime.millisecondsSinceEpoch.toString(),
+                time: message.sentTime,
                 context: context,
               )}',
               onTap: () {},
@@ -234,7 +261,7 @@ class Message extends StatelessWidget {
                 Icons.remove_red_eye,
                 color: Colors.deepOrange,
               ),
-              name: message.status == MessageStatus.notView
+              name: message.read.isEmpty
                   ? 'Read At: Not seen yet!'
                   : 'Read At ${MyDateUtil.getMessageTime(time: message.read, context: context)}',
               onTap: () {},

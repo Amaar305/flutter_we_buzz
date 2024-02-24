@@ -1,6 +1,6 @@
 plugins {
     id "com.android.application"
-    id "kotlin-android"
+    id 'kotlin-android'
     id "dev.flutter.flutter-gradle-plugin"
 }
 
@@ -24,7 +24,7 @@ if (flutterVersionName == null) {
 
 android {
     namespace "com.example.hi_tweet"
-    compileSdkVersion flutter.compileSdkVersion
+    compileSdkVersion 33
     ndkVersion flutter.ndkVersion
 
     compileOptions {
@@ -57,6 +57,22 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig signingConfigs.debug
+        }
+    }
+
+    lintOptions {
+        warningsAsErrors true
+        checkReleaseBuilds true
+        // Other lint options...
+        tasks.lint.enabled = true
+    }
+
+    signingConfigs {
+        release {
+            storeFile file('keystore.jks')
+            storePassword 'webuzz2003'
+            keyAlias 'new_alias'
+            keyPassword 'webuzz2003'
         }
     }
 }

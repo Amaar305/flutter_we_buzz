@@ -1,0 +1,104 @@
+// class Message {
+//   final String senderID;
+//   final String content;
+
+//   Message({required this.senderID, required this.content});
+// }
+
+// class Content {
+//   final String role;
+//   final List<Parts> parts;
+
+//   Content({required this.role, required this.parts});
+// }
+
+// class Parts {
+//   final String text;
+
+//   Parts({required this.text});
+// }
+
+// List<Message> m = [
+//   Message(senderID: 'me', content: 'Hello'),
+//   Message(senderID: 'bot', content: 'How Can I Help You?'),
+//   Message(senderID: 'me', content: 'Tell me a joke'),
+//   Message(senderID: 'bot', content: 'Lettus has a penis'),
+//   Message(senderID: 'me', content: 'Haha'),
+//   Message(senderID: 'bot', content: 'Yah! very funny'),
+// ];
+
+// class Chat {
+//   final List<Content> contents;
+
+//   Chat({required this.contents});
+// }
+
+// void main(List<String> args) {
+//   final Chat chat = Chat(
+//       contents: m.map((e) {
+//     if (e.senderID == 'bot') {
+//       return Content(role: 'model', parts: [Parts(text: e.content)]);
+//     } else {
+//       return Content(role: 'user', parts: [Parts(text: e.content)]);
+//     }
+//   }).toList());
+
+//   List<Content> c = [
+//     ...chat.contents,
+//     Content(
+//       parts: [
+//         Parts(
+//           text: 'New one added',
+//         )
+//       ],
+//       role: 'model',
+//     )
+//   ];
+//   for (var I in c) {
+//     for (var j in I.parts) {
+//       print(j.text);
+//     }
+//   }
+// }
+
+@override
+void onReady() {
+  super.onReady();
+
+  // Casting to the value of _user to Rx value
+  _user = Rx<User?>(auth.currentUser);
+
+  // Whatever happen with user, will be notify
+  _user.bindStream(auth.userChanges());
+
+  // ever function takes a listener (Firebase user),
+  // and callback method, anytime something changes, the method will be notified
+  ever(_user, _initialScreensSettings);
+  update();
+
+  Future.delayed(const Duration(seconds: 2), () {
+    if (currentUser != null) {
+      bioEditingController!.text = currentUser!.bio;
+      editNameEditingController!.text = currentUser!.name;
+      lavelEditingController!.text = currentUser!.level ?? '';
+      phoneEditingController!.text = currentUser!.phone ?? '';
+    }
+  });
+
+  programs.bindStream(_streamPrograms());
+}
+
+// Navigations configuration
+void _initialScreensSettings(User? user) async {
+  if (user == null) {
+    Get.offAllNamed(WelcomePage.routeName);
+  } else {
+    await Future.delayed(const Duration(milliseconds: 200))
+        .whenComplete(() async {
+      await fetchUserDetails(_user.value!.uid);
+    });
+
+    Get.offAll(() => const MyBottomNavBar());
+    update();
+  }
+}

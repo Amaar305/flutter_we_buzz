@@ -1,7 +1,7 @@
-enum BuzzType{
+enum BuzzType {
   origianl,
   rebuzz,
   reply,
   qoute,
-
+  sponsor,
 }

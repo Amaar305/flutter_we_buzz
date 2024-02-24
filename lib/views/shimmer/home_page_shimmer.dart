@@ -8,15 +8,13 @@ class HomePageShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView.builder(
       itemCount: 7,
-      itemBuilder: (context, index) => const ShimmerHomeWidget(),
+      itemBuilder: (context, index) => const _ShimmerHomeWidget(),
     );
   }
 }
 
-class ShimmerHomeWidget extends StatelessWidget {
-  const ShimmerHomeWidget({
-    super.key,
-  });
+class _ShimmerHomeWidget extends StatelessWidget {
+  const _ShimmerHomeWidget();
 
   @override
   Widget build(BuildContext context) {

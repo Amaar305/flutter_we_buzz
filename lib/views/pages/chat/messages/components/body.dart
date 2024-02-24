@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../../../model/chat_message_model.dart';
+import '../../../../../model/message_model.dart';
 import '../../../../../model/chat_model.dart';
 import '../../../../../model/we_buzz_user_model.dart';
 import '../../../../utils/constants.dart';
@@ -44,7 +44,6 @@ class Body extends StatelessWidget {
                   // if some or all data is loaded then show it
                   case ConnectionState.active:
                   case ConnectionState.done:
-                  
                     controller.addMessages(snapshot.data!);
 
                     if (snapshot.data != null) {
@@ -61,6 +60,7 @@ class Body extends StatelessWidget {
                               user: chat.members.firstWhere(
                                   (user) => user.userId == message.senderID),
                               isGroup: chat.group,
+                              conversation: chat,
                             );
                           },
                         );
@@ -153,7 +153,17 @@ class Body extends StatelessWidget {
                 ),
               );
             } else {
-              return ChatMessageField(controller: controller, chat: chat);
+              return otherChatUser.bot
+                  ? ChatMessageFWithBotield(
+                      controller: controller,
+                      chat: chat,
+                      otherChatUser: otherChatUser,
+                    )
+                  : ChatMessageField(
+                      controller: controller,
+                      chat: chat,
+                      otherChatUser: otherChatUser,
+                    );
             }
           },
         ),

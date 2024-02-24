@@ -21,7 +21,7 @@ class NotificationModel {
   });
 
   // Factory method to create a NotificationModel from Firestore document data
-  factory NotificationModel.fromFirestore(
+  factory NotificationModel.fromJson(
     Map<String, dynamic> data,
     String documentId,
   ) {
@@ -45,9 +45,13 @@ class NotificationModel {
       case 'groupChat':
         notificationType = NotificationType.groupChat;
         break;
+      case 'chat':
+        notificationType = NotificationType.chat;
+        break;
       default:
         notificationType = NotificationType.unknown;
     }
+
     return NotificationModel(
       id: documentId,
       type: notificationType,
@@ -57,6 +61,10 @@ class NotificationModel {
       timestamp: (data['timestamp'] as Timestamp).toDate(),
       isRead: data['isRead'] ?? false,
     );
+  }
+  factory NotificationModel.fromDocument(DocumentSnapshot documentSnapshot) {
+    final data = documentSnapshot.data() as Map<String, dynamic>;
+    return NotificationModel.fromJson(data, documentSnapshot.id);
   }
 
   // Method to convert the NotificationModel to a Map for Firestore
@@ -82,6 +90,9 @@ class NotificationModel {
       case NotificationType.groupChat:
         notificationType = 'groupChat';
         break;
+      case NotificationType.chat:
+        notificationType = 'chat';
+        break;
       default:
         notificationType = '';
     }
@@ -105,5 +116,6 @@ enum NotificationType {
   groupChat,
   chat,
   staff,
+  classRep,
   unknown
 }

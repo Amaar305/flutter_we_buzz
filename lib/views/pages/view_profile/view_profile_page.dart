@@ -1,135 +1,47 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fluentui_icons/fluentui_icons.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:full_screen_image/full_screen_image.dart';
 import 'package:get/get.dart';
-import 'package:hi_tweet/model/we_buzz_user_model.dart';
-import 'package:hi_tweet/views/pages/dashboard/my_app_controller.dart';
-import 'package:hi_tweet/views/utils/constants.dart';
-import 'package:hi_tweet/views/widgets/home/reusable_card.dart';
-
 import 'package:nb_utils/nb_utils.dart';
 
+import '../../../model/we_buzz_user_model.dart';
+import '../../utils/constants.dart';
 import '../../utils/method_utils.dart';
+import '../../widgets/profile/buzz_section_widget.dart';
 import '../../widgets/profile/profile_option_setting.dart';
 import '../../widgets/profile/profile_tab_widget.dart';
+import '../../widgets/profile/profile_tabs.dart';
 import '../chat/add_users_page/add_users_controller.dart';
+import '../dashboard/my_app_controller.dart';
 import '../home/home_controller.dart';
 import 'view_profile_controller.dart';
 
 // View profile page ----> To view profile of a user
-class ViewProfilePage extends StatelessWidget {
-  ViewProfilePage({super.key, required this.weBuzzUser});
+class ViewProfilePage extends GetView<ViewProfileController> {
+  const ViewProfilePage({super.key, required this.weBuzzUser});
 
   final WeBuzzUser weBuzzUser;
-
-  final viewProfileController = ViewProfileController.viewProfileController;
 
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
-    final buzzController = HomeController.instance;
     return Scaffold(
-      floatingActionButton: weBuzzUser.userId !=
-              FirebaseAuth.instance.currentUser!.uid
-          ? Obx(
-              () {
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        AddUsersController.instance.showDiaologForBlockingUser(
-                          weBuzzUser,
-                        );
-                      },
-                      style: TextButton.styleFrom(
-                        backgroundColor: Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withOpacity(0.8),
-                      ),
-                      child: Text(
-                        AppController.instance.weBuzzUsers
-                                .firstWhere((user) =>
-                                    user.userId ==
-                                    FirebaseAuth.instance.currentUser!.uid)
-                                .blockedUsers
-                                .contains(weBuzzUser.userId)
-                            ? 'Unblock'
-                            : 'Block',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyLarge!
-                            .copyWith(color: Colors.black),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextButton.icon(
-                      style: TextButton.styleFrom(
-                        backgroundColor: Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withOpacity(0.8),
-                      ),
-                      label: Text(
-                        viewProfileController.currentWeBuxxUser.value!.followers
-                                    .contains(weBuzzUser.userId) &&
-                                viewProfileController
-                                    .currentWeBuxxUser.value!.following
-                                    .contains(weBuzzUser.userId)
-                            ? 'Friends'
-                            : viewProfileController
-                                    .currentWeBuxxUser.value!.following
-                                    .contains(weBuzzUser.userId)
-                                ? 'UnFollow'
-                                : 'Follow'
-                                    '',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyLarge!
-                            .copyWith(color: Colors.black),
-                      ),
-                      icon: Icon(
-                        viewProfileController.currentWeBuxxUser.value!.followers
-                                    .contains(weBuzzUser.userId) &&
-                                viewProfileController
-                                    .currentWeBuxxUser.value!.following
-                                    .contains(weBuzzUser.userId)
-                            ? Icons.person
-                            : viewProfileController
-                                    .currentWeBuxxUser.value!.following
-                                    .contains(weBuzzUser.userId)
-                                ? Icons.person_off_outlined
-                                : Icons.person_add_alt_1_outlined,
-                        size: 30,
-                        color: Colors.black,
-                      ),
-                      onPressed: () {
-                        if (viewProfileController
-                            .currentWeBuxxUser.value!.following
-                            .contains(weBuzzUser.userId)) {
-                          viewProfileController.unfollowUser(weBuzzUser.userId);
-                        } else {
-                          viewProfileController.followUser(weBuzzUser);
-                        }
-                        // viewProfileController.followUser(weBuzzUser);
-                      },
-                    ),
-                  ],
-                );
-              },
-            )
-          : null,
+      floatingActionButton:
+          weBuzzUser.userId != controller.currentUserID && !weBuzzUser.bot
+              ? CustomFloatingActionButtonsForProfilePage(
+                  weBuzzUser: weBuzzUser,
+                  viewProfileController: controller,
+                )
+              : null,
       body: DefaultTabController(
         length: 2,
         child: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) {
             return <Widget>[
+              // AppBar
               SliverAppBar(
                 expandedHeight: size.height * 0.44,
                 floating: false,
@@ -179,44 +91,39 @@ class ViewProfilePage extends StatelessWidget {
                               ),
                               child: Column(
                                 children: [
-                                  GetBuilder<AppController>(
-                                    builder: (controller) {
-                                      return FullScreenWidget(
-                                        disposeLevel: DisposeLevel.High,
-                                        backgroundIsTransparent: true,
-                                        child: CircleAvatar(
-                                          radius: size.height * 0.08,
-                                          backgroundImage:
-                                              CachedNetworkImageProvider(
-                                            weBuzzUser.imageUrl ??
-                                                defaultProfileImage,
-                                          ),
-                                        ),
-                                      );
-                                    },
+                                  FullScreenWidget(
+                                    disposeLevel: DisposeLevel.High,
+                                    backgroundIsTransparent: true,
+                                    child: CircleAvatar(
+                                      radius: size.height * 0.08,
+                                      backgroundImage:
+                                          CachedNetworkImageProvider(
+                                        weBuzzUser.imageUrl ??
+                                            defaultProfileImage,
+                                      ),
+                                    ),
                                   ),
                                   const SizedBox(height: 8),
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      GetBuilder<AppController>(
-                                          builder: (controller) {
-                                        return Text(
-                                          weBuzzUser.name,
-                                          style: const TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        );
-                                      }),
-                                      const SizedBox(width: 8),
-                                      Icon(
-                                        Icons.verified,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
-                                        size: 15,
-                                      )
+                                      Text(
+                                        weBuzzUser.name,
+                                        style: const TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      if (weBuzzUser.isVerified) ...[
+                                        const SizedBox(width: 8),
+                                        Icon(
+                                          Icons.verified,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                          size: 15,
+                                        )
+                                      ]
                                     ],
                                   ),
                                   const SizedBox(height: 8),
@@ -226,7 +133,7 @@ class ViewProfilePage extends StatelessWidget {
                                     ),
                                     child: Text(
                                       weBuzzUser.bio,
-                                      textAlign: TextAlign.justify,
+                                      textAlign: TextAlign.start,
                                       maxLines: 3,
                                       overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
@@ -245,79 +152,14 @@ class ViewProfilePage extends StatelessWidget {
                   ),
                 ),
               ),
-              SliverPersistentHeader(
-                delegate: SliverAppBarDelegate(
-                  TabBar(
-                    indicatorColor: Colors.black54,
-                    labelColor: Colors.black,
-                    tabs: [
-                      Tab(
-                        child: Text(
-                          'Buzz (${MethodUtils.formatNumber(
-                            buzzController.weeBuzzItems
-                                .where(
-                                  (buzz) =>
-                                      buzz.authorId.contains(weBuzzUser.userId),
-                                )
-                                .length,
-                          )})',
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const Tab(
-                        child: Text(
-                          'About',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                pinned: true,
-              ),
+
+              // Tab Titles
+              ProfileTabs(userId: weBuzzUser.userId, isProfilePage: false),
             ];
           },
           body: TabBarView(
             children: [
-              Padding(
-                padding: EdgeInsets.only(
-                  top: 15,
-                  left: MediaQuery.of(context).size.width * 0.03,
-                  right: MediaQuery.of(context).size.width * 0.03,
-                ),
-                child: Obx(() {
-                  // Filter and return the user's tweet
-                  final myPost = buzzController.weeBuzzItems
-                      .where(
-                        (buzz) => buzz.authorId == weBuzzUser.userId,
-                      )
-                      .toList();
-                  return myPost.isNotEmpty
-                      ? ListView.builder(
-                          scrollDirection: Axis.vertical,
-                          itemCount: myPost.length,
-                          physics: const NeverScrollableScrollPhysics(),
-                          shrinkWrap: true,
-                          itemBuilder: (context, index) {
-                            return ReusableCard(
-                              normalWebuzz: myPost[index],
-                            );
-                          },
-                        )
-                      : const Center(
-                          child: Text(
-                            'No Buzz Yet!',
-                            style: TextStyle(fontSize: 20),
-                          ),
-                        );
-                }),
-              ),
+              BuzzSectionWidget(userId: weBuzzUser.userId),
               Container(
                 margin: const EdgeInsets.only(left: 16, top: 20, right: 16),
                 child: SingleChildScrollView(
@@ -327,11 +169,14 @@ class ViewProfilePage extends StatelessWidget {
                     children: [
                       const TitleSetting(title: 'Basic Information'),
                       const SizedBox(height: 15),
-                      const BasicInfoWidget(
-                        iconData: Icons.school,
-                        subtitle: 'Computer Science',
-                        title: 'Department',
-                      ),
+
+                      // User program
+                      if (weBuzzUser.program != null)
+                        BasicInfoWidget(
+                          iconData: Icons.school,
+                          subtitle: weBuzzUser.program!,
+                          title: 'Program',
+                        ),
 
                       // User lavel
                       if (weBuzzUser.level != null)
@@ -349,20 +194,37 @@ class ViewProfilePage extends StatelessWidget {
                           final email = weBuzzUser.email.length >= 20
                               ? "${weBuzzUser.email.substring(0, 20)}..."
                               : weBuzzUser.email;
-                          return BasicInfoWidget(
-                            iconData: Icons.email,
-                            subtitle: email,
-                            title: 'Email',
+                          return GestureDetector(
+                            onTap: () async {
+                              await Clipboard.setData(
+                                      ClipboardData(text: weBuzzUser.email))
+                                  .then(
+                                (value) {
+                                  Get.back();
+                                  toast('Email Copied');
+                                },
+                              );
+                            },
+                            child: BasicInfoWidget(
+                              iconData: Icons.email,
+                              subtitle: email,
+                              title: 'Email',
+                            ),
                           );
                         },
                       ),
 
                       // User phone
                       if (weBuzzUser.phone != null)
-                        BasicInfoWidget(
-                          iconData: Icons.phone,
-                          subtitle: weBuzzUser.phone ?? 'not set',
-                          title: 'Phone No.',
+                        GestureDetector(
+                          onTap: () {
+                            MethodUtils.makePhoneCall(weBuzzUser.phone ?? '');
+                          },
+                          child: BasicInfoWidget(
+                            iconData: Icons.phone,
+                            subtitle: weBuzzUser.phone ?? 'not set',
+                            title: 'Phone No.',
+                          ),
                         ),
 
                       // Date of register
@@ -384,6 +246,104 @@ class ViewProfilePage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class CustomFloatingActionButtonsForProfilePage extends StatelessWidget {
+  const CustomFloatingActionButtonsForProfilePage({
+    super.key,
+    required this.weBuzzUser,
+    required this.viewProfileController,
+  });
+
+  final WeBuzzUser weBuzzUser;
+  final ViewProfileController viewProfileController;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(
+      () {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            TextButton(
+              onPressed: () {
+                AddUsersController.instance.showDiaologForBlockingUser(
+                  weBuzzUser,
+                );
+              },
+              style: TextButton.styleFrom(
+                backgroundColor:
+                    Theme.of(context).colorScheme.primary.withOpacity(0.8),
+              ),
+              child: GetBuilder<AppController>(
+                builder: (control) {
+                  return Text(
+                    control.currentUser == null
+                        ? 'Block Warning!'
+                        : control.currentUser!.blockedUsers
+                                .contains(weBuzzUser.userId)
+                            ? 'Unblock'
+                            : 'Block',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyLarge!
+                        .copyWith(color: Colors.black),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextButton.icon(
+              style: TextButton.styleFrom(
+                backgroundColor:
+                    Theme.of(context).colorScheme.primary.withOpacity(0.8),
+              ),
+              label: Text(
+                HomeController.instance.currenttUsersFollowers
+                            .contains(weBuzzUser.userId) &&
+                        HomeController.instance.currenttUsersFollowing
+                            .contains(weBuzzUser.userId)
+                    ? 'Friends'
+                    : HomeController.instance.currenttUsersFollowing
+                            .contains(weBuzzUser.userId)
+                        ? 'UnFollow'
+                        : 'Follow'
+                            '',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyLarge!
+                    .copyWith(color: Colors.black),
+              ),
+              icon: Icon(
+                HomeController.instance.currenttUsersFollowers
+                            .contains(weBuzzUser.userId) &&
+                        HomeController.instance.currenttUsersFollowing
+                            .contains(weBuzzUser.userId)
+                    ? Icons.person
+                    : HomeController.instance.currenttUsersFollowing
+                            .contains(weBuzzUser.userId)
+                        ? Icons.person_off_outlined
+                        : Icons.person_add_alt_1_outlined,
+                size: 30,
+                color: Colors.black,
+              ),
+              onPressed: () {
+                if (HomeController.instance.currenttUsersFollowing
+                    .contains(weBuzzUser.userId)) {
+                  viewProfileController.unfollowUser(weBuzzUser.userId);
+                } else {
+                  viewProfileController.followUser(weBuzzUser);
+                }
+                // viewProfileController.followUser(weBuzzUser);
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }

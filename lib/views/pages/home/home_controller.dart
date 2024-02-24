@@ -2,17 +2,21 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:nb_utils/nb_utils.dart';
 
-import '../../../model/buzz_enum.dart';
-import '../../../model/chat_message_model.dart';
+import '../../../model/campus_announcement.dart';
 import '../../../model/chat_model.dart';
+import '../../../model/message_model.dart';
 import '../../../model/notification_model.dart';
-import '../../../model/report_buzz.dart';
+import '../../../model/report/report.dart';
+import '../../../model/save_buzz.dart';
 import '../../../model/we_buzz_user_model.dart';
 import '../../../model/we_buzz_model.dart';
+import '../../../services/bot_service.dart';
 import '../../../services/firebase_constants.dart';
 import '../../../services/firebase_service.dart';
 import '../../../services/notification_services.dart';
@@ -24,16 +28,44 @@ import '../dashboard/my_app_controller.dart';
 class HomeController extends GetxController {
   static final HomeController instance = Get.find();
 
-  RxList<WeBuzz> weeBuzzItems = RxList<WeBuzz>([]);
+  final queryBuzz = FirebaseService.firebaseFirestore
+      .collection(firebaseWeBuzzCollection)
+      .where('isSuspended', isEqualTo: false)
+      .where('isPublished', isEqualTo: true)
+      .orderBy('createdAt', descending: true)
+      .withConverter(
+        fromFirestore: (snapshot, options) => WeBuzz.fromJson(
+          snapshot.data()!,
+          snapshot.id,
+          snapshot.reference,
+        ),
+        toFirestore: (buzz, options) => buzz.toJson(),
+      );
+
+  RxList<CampusAnnouncement> annouce = RxList<CampusAnnouncement>([]);
+
+  RxList<String> currenttUsersFollowers = RxList<String>([]);
+  RxList<String> currenttUsersFollowing = RxList<String>([]);
+
+  ScrollController exploreScrollController = ScrollController();
+  ScrollController feedScrollController = ScrollController();
+  final isVisible = true.obs;
+  final isVisible1 = true.obs;
 
   RxBool isAnimated = RxBool(false);
   late Timer timer;
   double rotate = 0.0;
 
+  int activeIndex = 0;
+
+  void updateActiveIndex(int index) {
+    activeIndex = index;
+    update();
+  }
+
   @override
   void onInit() {
     super.onInit();
-
     SystemChannels.lifecycle.setMessageHandler((message) {
       log('message: $message');
       if (FirebaseAuth.instance.currentUser != null) {
@@ -46,11 +78,40 @@ class HomeController extends GetxController {
       }
       return Future.value(message);
     });
-    weeBuzzItems.bindStream(_streamTweetBuzz());
+
+    exploreScrollController.addListener(() {
+      isVisible.value = exploreScrollController.position.userScrollDirection ==
+          ScrollDirection.forward;
+    });
+    feedScrollController.addListener(() {
+      isVisible1.value = feedScrollController.position.userScrollDirection ==
+          ScrollDirection.forward;
+    });
+    currenttUsersFollowers.bindStream(FirebaseService.streamFollowers(
+        FirebaseAuth.instance.currentUser!.uid));
+    currenttUsersFollowing.bindStream(FirebaseService.streamFollowing(
+        FirebaseAuth.instance.currentUser!.uid));
+
+    annouce.bindStream(_streamAnnouce());
     timer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
       rotate += 0.005;
       update();
     });
+  }
+
+  // WeBuzzUser get currentUser => AppController.instance.weBuzzUsers.firstWhere(
+  //     (user) => user.userId == FirebaseAuth.instance.currentUser!.uid);
+
+  WeBuzzUser currentUser() {
+    try {
+      final user = AppController.instance.weBuzzUsers.firstWhere((element) =>
+          element.userId == FirebaseAuth.instance.currentUser!.uid);
+      return user;
+    } catch (e) {
+      log("error getting current user's info");
+      return AppController.instance.currentUser!;
+      //FIXME: may be null sometime or cant reflect changes
+    }
   }
 
   Future<WeBuzz> getPostWithAdditionalData(WeBuzz weBuzz) async {
@@ -95,292 +156,22 @@ class HomeController extends GetxController {
     );
   }
 
-  Stream<List<WeBuzz>> _streamTweetBuzz() {
-    CollectionReference collectionReference =
-        FirebaseService.firebaseFirestore.collection(firebaseWeBuzzCollection);
+  // Stream<List<WeBuzz>> _streamTweetBuzz() {
+  //   return FirebaseService.firebaseFirestore
+  //       .collection(firebaseWeBuzzCollection)
+  //       .where('isSuspended', isEqualTo: false)
+  //       .orderBy('createdAt', descending: true)
+  //       .snapshots()
+  //       .map((query) => query.docs
+  //           .map((item) => WeBuzz.fromDocumentSnapshot(item))
+  //           .toList());
+  // }
 
-    return collectionReference
-        // .where('isPublished', isEqualTo: true)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map(
-          (query) => query.docs
-              .map((item) => WeBuzz.fromDocumentSnapshot(item))
-              .toList(),
-        );
-  }
-
-  void updateViews(WeBuzz buzz) async {
-    if (FirebaseAuth.instance.currentUser != null) {
-      final loggedInUserId = FirebaseAuth.instance.currentUser!.uid;
-
-      // get post owner info
-      final targetUser = AppController.instance.weBuzzUsers
-          .firstWhere((user) => user.userId == buzz.authorId);
-
-      if (buzz.likes.contains(loggedInUserId)) {
-        try {
-          await FirebaseService.updateBuzz(buzz.docId, {
-            'likes': FieldValue.arrayRemove([loggedInUserId])
-          });
-          toast('Unliked');
-        } catch (e) {
-          log('Error unliking the post');
-        }
-      } else {
-        try {
-          await FirebaseService.updateBuzz(buzz.docId, {
-            'likes': FieldValue.arrayUnion([loggedInUserId])
-          }).then((_) {
-            // If current user is not equal to the post author, send the notification
-            if (buzz.authorId != loggedInUserId) {
-              NotificationServices.sendNotification(
-                notificationType: NotificationType.postLiking,
-                targetUser: targetUser,
-              );
-            }
-          });
-          toast('Liked');
-        } catch (e) {
-          log('Error liking the post');
-        }
-      }
-    }
-  }
-
-  // Repost a buzz
-  Future reTweetBuzz(WeBuzz webuzz, bool current) async {
-    final loggedInUserId = FirebaseAuth.instance.currentUser!.uid;
-    if (current) {
-      // unRebuzz and decrement (rebuzzcounter) the post if user did rebuzz allready
-      CustomFullScreenDialog.showDialog();
-      try {
-        await FirebaseService.firebaseFirestore
-            .collection(firebaseWeBuzzCollection)
-            .doc(webuzz.docId)
-            .collection(firebaseReBuzzCollection)
-            .doc(loggedInUserId)
-            .delete()
-            .then((value) {
-          FirebaseService.firebaseFirestore
-              .collection(firebaseWeBuzzCollection)
-              .doc(webuzz.docId)
-              .update({
-            "reBuzzsCount": FieldValue.increment(-1),
-            'rebuzzs':
-                FieldValue.arrayRemove([FirebaseAuth.instance.currentUser!.uid])
-          });
-        });
-
-        await FirebaseService.firebaseFirestore
-            .collection(firebaseWeBuzzCollection)
-            .where('originalId', isEqualTo: webuzz.docId)
-            .where('authorId', isEqualTo: loggedInUserId)
-            .get()
-            .then((value) {
-          // If this query does not return anything, we gonna leave it
-          if (value.docs.isEmpty) {
-            return;
-          }
-
-          // Else we gonna delete it
-          FirebaseService.firebaseFirestore
-              .collection(firebaseWeBuzzCollection)
-              .doc(value.docs[0].id)
-              .delete();
-        });
-
-        CustomFullScreenDialog.cancleDialog();
-        return;
-      } catch (e) {
-        CustomFullScreenDialog.cancleDialog();
-        log('Error while trying to unRebuzz the post $e');
-      }
-    } // webuzz.reBuzzsCount = webuzz.reBuzzsCount + 1;
-    WeBuzz retweetedBux = webuzz.copyWith(
-      authorId: FirebaseAuth.instance.currentUser!.uid,
-      createdAt: Timestamp.now(),
-      originalId: webuzz.docId,
-      buzzType: BuzzType.rebuzz.name,
-      rebuzz: true,
-    );
-
-    // rebuzz the post if user hasn't rebuzz the post
-    CustomFullScreenDialog.showDialog();
-    try {
-      await FirebaseService.firebaseFirestore
-          .collection(firebaseWeBuzzCollection)
-          .doc(webuzz.docId)
-          .collection(firebaseReBuzzCollection)
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .set({}).then((value) {
-        FirebaseService.firebaseFirestore
-            .collection(firebaseWeBuzzCollection)
-            .doc(webuzz.docId)
-            .update({
-          "reBuzzsCount": FieldValue.increment(1),
-          'rebuzzs':
-              FieldValue.arrayUnion([FirebaseAuth.instance.currentUser!.uid])
-        });
-      });
-
-      await FirebaseService.firebaseFirestore
-          .collection(firebaseWeBuzzCollection)
-          .add(retweetedBux.toJson());
-      CustomFullScreenDialog.cancleDialog();
-    } catch (e) {
-      CustomFullScreenDialog.cancleDialog();
-      log('Error while trying to unRebuzz the post $e');
-    }
-  }
-
-  Future likePost(WeBuzz webuzz, bool current) async {
-    if (current) {
-      CustomFullScreenDialog.showDialog();
-      try {
-        await FirebaseService.firebaseFirestore
-            .collection(firebaseWeBuzzCollection)
-            .doc(webuzz.docId)
-            .collection(firebaseLikesPostCollection)
-            .doc(FirebaseAuth.instance.currentUser!.uid)
-            .delete()
-            .then((value) async {
-          await FirebaseService.firebaseFirestore
-              .collection(firebaseWeBuzzCollection)
-              .doc(webuzz.docId)
-              .update({'likesCount': FieldValue.increment(-1)});
-        });
-        CustomFullScreenDialog.cancleDialog();
-      } catch (e) {
-        CustomFullScreenDialog.cancleDialog();
-        log(e);
-      }
-    }
-    if (!current) {
-      CustomFullScreenDialog.showDialog();
-      try {
-        await FirebaseService.firebaseFirestore
-            .collection(firebaseWeBuzzCollection)
-            .doc(webuzz.docId)
-            .collection(firebaseLikesPostCollection)
-            .doc(FirebaseAuth.instance.currentUser!.uid)
-            .set({}).then((value) async {
-          await FirebaseService.firebaseFirestore
-              .collection(firebaseWeBuzzCollection)
-              .doc(webuzz.docId)
-              .update({'likesCount': FieldValue.increment(1)});
-        });
-        CustomFullScreenDialog.cancleDialog();
-      } catch (e) {
-        CustomFullScreenDialog.cancleDialog();
-
-        log(e);
-      }
-    }
-  }
-
-  Stream<bool> getCurrentUserLikes(WeBuzz webuzz) {
-    return FirebaseService.firebaseFirestore
-        .collection(firebaseWeBuzzCollection)
-        .doc(webuzz.docId)
-        .collection(firebaseLikesPostCollection)
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .snapshots()
-        .map((snap) {
-      return snap.exists;
-    });
-  }
-
-  WeBuzz? _getPostSnap(DocumentSnapshot snapshot) {
-    return snapshot.exists ? WeBuzz.fromDocumentSnapshot(snapshot) : null;
-  }
-
-  Future<WeBuzz> getPostById(String id) async {
-    DocumentSnapshot documentSnap = await FirebaseService.firebaseFirestore
-        .collection(firebaseWeBuzzCollection)
-        .doc(id)
-        .get();
-    return _getPostSnap(documentSnap)!;
-  }
-
-  Stream<bool> getCurrentUserReBuzz(WeBuzz weBuzz) {
-    return FirebaseService.firebaseFirestore
-        .collection(firebaseWeBuzzCollection)
-        .doc(weBuzz.docId)
-        .collection(firebaseReBuzzCollection)
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .snapshots()
-        .map((snap) => snap.exists);
-  }
-
-  Future<void> toggleRetweetPost(WeBuzz webuzz) async {
-    // chech if the user has already retweeted
-    final retweet = await FirebaseService.firebaseFirestore
-        .collection(firebaseReBuzzCollection)
-        .where('originalId', isEqualTo: webuzz.docId)
-        .where('authorId', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-        .get();
-
-    final postRef = FirebaseService.firebaseFirestore
-        .collection(firebaseWeBuzzCollection)
-        .doc(webuzz.docId);
-
-    if (retweet.docs.isEmpty) {
-      // user has not retweet,
-
-      WeBuzz retweetedBux = webuzz.copyWith(
-        authorId: FirebaseAuth.instance.currentUser!.uid,
-        createdAt: Timestamp.now(),
-        originalId: webuzz.docId,
-        buzzType: BuzzType.rebuzz.name,
-        rebuzz: true,
-      );
-      await FirebaseService.firebaseFirestore
-          .collection(firebaseReBuzzCollection)
-          .add(retweetedBux.toJson());
-
-      // increment the retweet count
-      postRef.update({"reBuzzsCount": FieldValue.increment(1)});
-    } else {
-      // user has retweeted, unretweeted
-      final retweetId = retweet.docs.first.id;
-
-      // delete the retweet document
-      await FirebaseService.firebaseFirestore
-          .collection(firebaseReBuzzCollection)
-          .doc(retweetId)
-          .delete();
-
-      // decrement the retweet count in the original post
-      postRef.update({"reBuzzsCount": FieldValue.increment(-1)});
-    }
-  }
-
-  Stream<bool> postIsRetweeted(String docId) {
-    return FirebaseService.firebaseFirestore
-        .collection(firebaseReBuzzCollection)
-        .where('originalId', isEqualTo: docId)
-        .where('authorId', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-        .snapshots()
-        .map((query) => query.docs.map((doc) {
-              return doc.exists;
-            }).first);
-  }
-
-  Future<List<WeBuzz>> getReplies(WeBuzz weBuzz) async {
-    QuerySnapshot snapshot = await weBuzz.refrence!
-        .collection(firebaseRepliesCollection)
-        .orderBy('createdAt', descending: false)
-        .get();
-
-    return _getListPostSnap(snapshot);
-  }
-
-  List<WeBuzz> _getListPostSnap(QuerySnapshot snapshot) {
-    return snapshot.docs
-        .map((buzz) => WeBuzz.fromDocumentSnapshot(buzz))
-        .toList();
-  }
+  // List<WeBuzz> _getListPostSnap(QuerySnapshot snapshot) {
+  //   return snapshot.docs
+  //       .map((buzz) => WeBuzz.fromDocumentSnapshot(buzz))
+  //       .toList();
+  // }
 
   void dmTheAuthor(String authorId) async {
     CustomFullScreenDialog.showDialog();
@@ -393,6 +184,7 @@ class HomeController extends GetxController {
 
       if (matchingChats.isNotEmpty) {
         // Chat already exists, retrieve chat data
+
         DocumentSnapshot chatDocument = matchingChats.first;
         // Access chat data using chatDocument.data()
         log('Chat already exists. Retrieve chat data: ${chatDocument.data()}');
@@ -417,7 +209,8 @@ class HomeController extends GetxController {
             .getLastMessageForChat(chatDocument.id)
             .whenComplete(() => CustomFullScreenDialog.cancleDialog());
         if (chatMessages.docs.isNotEmpty) {
-          messages.add(MessageModel.fromDocumentSnapshot(chatMessages.docs.first));
+          messages
+              .add(MessageModel.fromDocumentSnapshot(chatMessages.docs.first));
         }
 
         ChatConversation chatConversation = ChatConversation(
@@ -503,16 +296,25 @@ class HomeController extends GetxController {
   }
 
   void saveBuzz(WeBuzz weBuzz) async {
-    final targetUser = AppController.instance.weBuzzUsers
-        .firstWhere((user) => user.userId == weBuzz.authorId);
+    // final targetUser = AppController.instance.weBuzzUsers
+    //     .firstWhere((user) => user.userId == weBuzz.authorId);
     try {
-      await FirebaseService.saveBuzz(weBuzz.docId).then(
+      final targetUser = await FirebaseService.userByID(weBuzz.authorId);
+      if (targetUser == null) return;
+      SaveBuzz saveBuzz = SaveBuzz(
+        id: MethodUtils.generatedId,
+        buzzId: weBuzz.docId,
+        userId: targetUser.userId,
+        createdAt: Timestamp.now(),
+      );
+      await FirebaseService.saveBuzz(saveBuzz).then(
         (_) {
           // If current user is not equal to the post author, send the notification
           if (weBuzz.authorId != FirebaseAuth.instance.currentUser!.uid) {
             NotificationServices.sendNotification(
               notificationType: NotificationType.postSaved,
               targetUser: targetUser,
+              notifiactionRef: weBuzz.docId,
             );
           }
         },
@@ -539,19 +341,19 @@ class HomeController extends GetxController {
     }
   }
 
-  void reportBuzz(String buzzDocID, String reason) async {
-    CustomFullScreenDialog.showDialog();
+  void reportBuzz(String buzzDocID, String reason, ReportType type) async {
     try {
       Report data = Report(
-        reportID: MethodUtils.generatedId,
+        id: MethodUtils.generatedId,
+        reporterUserId: FirebaseAuth.instance.currentUser!.uid,
+        reportedItemId: buzzDocID,
         reportType: ReportType.buzz,
-        reporterID: FirebaseAuth.instance.currentUser!.uid,
-        reason: reason,
-        createdAt: Timestamp.now(),
+        description: reason,
+        lastThreeMessages: [],
+        timestamp: Timestamp.now(),
       );
-      await FirebaseService.reportBuzz(buzzDocID, data.toJson())
-          .whenComplete(() {
-        CustomFullScreenDialog.cancleDialog();
+
+      await FirebaseService.reportBuzz(buzzDocID, data, true).whenComplete(() {
         Get.back();
         toast('Successifully reported');
       });
@@ -565,13 +367,37 @@ class HomeController extends GetxController {
 // update post views
   void updateBuzzViews(WeBuzz weBuzz) async {
     try {
-      if (!weBuzz.views.contains(FirebaseAuth.instance.currentUser!.uid)) {
-        // if user has already viewed, do not update the
-        await Future.delayed(const Duration(milliseconds: 300));
-        await FirebaseService.updateBuzz(weBuzz.docId, {
-          'views':
-              FieldValue.arrayUnion([FirebaseAuth.instance.currentUser!.uid]),
-          "viewsCount": FieldValue.increment(1),
+      // if (!weBuzz.views.contains(FirebaseAuth.instance.currentUser!.uid)) {
+      //   // if user has already viewed, do not update the
+      //   await Future.delayed(const Duration(milliseconds: 300));
+      //   await FirebaseService.updateBuzz(weBuzz.docId, {
+      //     'views':
+      //         FieldValue.arrayUnion([FirebaseAuth.instance.currentUser!.uid]),
+      //     "viewsCount": FieldValue.increment(1),
+      //   });
+      // }
+
+      final doc = await FirebaseService.firebaseFirestore
+          .collection(firebaseWeBuzzCollection)
+          .doc(weBuzz.docId)
+          .collection(firebaseViewsCollection)
+          .doc(currentUser().userId)
+          .get();
+
+      if (!doc.exists) {
+        await FirebaseService.firebaseFirestore
+            .collection(firebaseWeBuzzCollection)
+            .doc(weBuzz.docId)
+            .collection(firebaseViewsCollection)
+            .doc(currentUser().userId)
+            .set({'userId': currentUser().userId}).then((value) async {
+          await Future.delayed(const Duration(milliseconds: 300));
+          await FirebaseService.updateBuzz(
+            weBuzz.docId,
+            {
+              "viewsCount": FieldValue.increment(1),
+            },
+          );
         });
       }
     } catch (e) {
@@ -590,9 +416,26 @@ class HomeController extends GetxController {
     'Intellectual Property Violation',
   ];
 
+  Stream<List<CampusAnnouncement>> _streamAnnouce() {
+    return FirebaseService.firebaseFirestore
+        .collection(firebaseAnnouncementCollection)
+        .orderBy('updatedAt', descending: true)
+        .snapshots()
+        .map((query) => query.docs
+            .map((item) => CampusAnnouncement.fromDocument(item))
+            .toList());
+  }
+
+  void startBot() async {
+    final text = await BotService().getData('Tell me I am genius please');
+    log(text);
+  }
+
   @override
   void onClose() {
     super.onClose();
+    exploreScrollController.dispose();
+    feedScrollController.dispose();
     timer.cancel();
   }
 }

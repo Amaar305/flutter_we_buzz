@@ -3,60 +3,35 @@ import 'package:get/get.dart';
 
 import '../../../../model/we_buzz_model.dart';
 import '../../../utils/constants.dart';
+import '../components/app_bar.dart';
+import '../components/text_form_field.dart';
 import '../hashtag_sytem.dart';
 import 'edit_post_controller.dart';
 
 class EditPostPage extends GetView<EditPostController> {
-  EditPostPage(this.weBuzz, {super.key}) {
+  EditPostPage(this.weBuzz, this.isReply, this.originalId, {super.key}) {
     controller.textEditingController.text = weBuzz.content;
   }
+  final String originalId;
   final WeBuzz weBuzz;
-
-  static const routeName = '/update-buzz';
+  final bool isReply;
 
   @override
   Widget build(BuildContext context) {
-    return _buildUI();
-  }
-
-  Widget _buildUI() {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: kDefaultAppPadding,
+          padding: kPadding,
           child: Column(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      Get.back();
-                    },
-                    icon: const Icon(Icons.close),
-                  ),
-                  const Text(
-                    'Update Buzz',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
+              const CreateBuzzAppBar(title: 'Update Buzz'),
               Expanded(
                 child: ListView(
                   children: [
-                    TextFormField(
+                    CreateBuzzTextFormField(
                       controller: controller.textEditingController,
-                      keyboardType: TextInputType.multiline,
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'Start a buzz...',
-                      ),
-                      maxLength: 250,
-                      maxLines: 2,
                     ),
+                    const SizedBox(height: 12),
                   ],
                 ),
               ),
@@ -67,11 +42,16 @@ class EditPostPage extends GetView<EditPostController> {
                     onPressed: () {
                       final hashtags =
                           hashTagSystem(controller.textEditingController.text);
+
                       WeBuzz updatedBuzz = weBuzz.copyWith(
                         content: controller.textEditingController.text,
                         hashtags: hashtags,
                       );
-                      controller.updateBuzz(updatedBuzz);
+                      if (isReply) {
+                        controller.updateReply(updatedBuzz, originalId);
+                      } else {
+                        controller.updateBuzz(updatedBuzz);
+                      }
                     },
                     style: TextButton.styleFrom(
                       backgroundColor:
@@ -84,9 +64,10 @@ class EditPostPage extends GetView<EditPostController> {
                     child: const Text(
                       'Update Now',
                       style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black),
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
                     ),
                   )
                 ],

@@ -3,6 +3,8 @@ import 'dart:developer';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:flutter_notification_channel/flutter_notification_channel.dart';
 import 'package:flutter_notification_channel/notification_importance.dart';
 import 'package:get/get.dart';
@@ -10,11 +12,21 @@ import 'package:get_storage/get_storage.dart';
 
 import 'app.dart';
 import 'firebase_options.dart';
+import 'services/api_keys.dart';
 import 'views/pages/dashboard/my_app_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await GetStorage.init();
+  Gemini.init(
+    apiKey: botApi,
+    generationConfig: GenerationConfig(
+      temperature: 0.7,
+      maxOutputTokens: 300,
+    ),
+  );
+
+ 
 
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.android)
@@ -41,10 +53,10 @@ Future<void> main() async {
   }
 
   // // for setting oriantation
-  // SystemChrome.setPreferredOrientations([
-  //   DeviceOrientation.portraitUp,
-  //   DeviceOrientation.portraitDown,
-  // ]);
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
   runApp(const MyApp());
 
@@ -56,4 +68,5 @@ Future<void> main() async {
   //         )
   //       : const MyApp(),
   // );
+  
 }

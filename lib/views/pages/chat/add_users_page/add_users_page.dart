@@ -1,7 +1,15 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 
+import '../../../utils/constants.dart';
+import '../../../utils/method_utils.dart';
+import '../../../widgets/home/custom_tab_bar.dart';
+import '../../../widgets/home/my_buttons.dart';
+import '../../dashboard/my_app_controller.dart';
+import '../../home/home_controller.dart';
 import 'add_users_controller.dart';
 import 'components/current_user_relation.dart';
 
@@ -16,13 +24,13 @@ class AddUsersPage extends GetView<AddUsersController> {
 
   Widget _buldUI(Size size) {
     return DefaultTabController(
-      length: 3,
-      initialIndex: 2,
+      length: controller.tabTitles.length,
+      initialIndex: controller.index,
       child: Scaffold(
         appBar: AppBar(
           title: const Text(
             'Friends',
-            style: TextStyle(fontSize: 32),
+            style: TextStyle(fontSize: 18),
           ),
           actions: [
             Padding(
@@ -31,11 +39,46 @@ class AddUsersPage extends GetView<AddUsersController> {
             ),
           ],
         ),
+        floatingActionButton: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GetBuilder<AddUsersController>(
+              builder: (_) {
+                return TextButton.icon(
+                  onPressed: null,
+                  icon: const Icon(
+                    Icons.person,
+                    size: 30,
+                  ),
+                  label: Text(
+                    MethodUtils.formatNumber(controller.index),
+                    style: const TextStyle(fontSize: 20),
+                  ),
+                );
+              },
+            ),
+            FloatingActionButton(
+              onPressed: () {
+                try {
+                  final bot = AppController.instance.weBuzzUsers
+                      .firstWhere((user) => user.bot);
+
+                  HomeController.instance.dmTheAuthor(bot.userId);
+                } catch (e) {
+                  log(e.toString());
+                }
+              },
+              child: const Icon(
+                FontAwesomeIcons.bots,
+                size: 35,
+              ),
+            ),
+          ],
+        ),
         body: Container(
-          padding: EdgeInsetsDirectional.symmetric(
-            horizontal: size.width * 0.03,
-            vertical: size.height * 0.02,
-          ),
+          padding: kPadding,
           height: size.height * 0.98,
           width: size.width * 0.97,
           child: Column(
@@ -43,42 +86,27 @@ class AddUsersPage extends GetView<AddUsersController> {
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
-                height: 45,
-                decoration: BoxDecoration(
-                  color: Theme.of(Get.context!)
-                      .colorScheme
-                      .primary
-                      .withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(25.0),
-                ),
-                child: TabBar(
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.black,
-                  labelStyle: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16),
-                  tabs: controller.titles.map((e) => Tab(text: e)).toList(),
-                ),
+              CustomTabBar(
+                list: controller.tabTitles,
+                onTap: controller.updateIndex,
               ),
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    CurrentUserRelations(
-                      controller: controller,
-                      currentUserFriends: CurrentUserFriends.mutual,
-                    ),
-                    CurrentUserRelations(
-                      controller: controller,
-                      currentUserFriends: CurrentUserFriends.following,
-                    ),
-                    CurrentUserRelations(
-                      controller: controller,
-                      currentUserFriends: CurrentUserFriends.followers,
-                    ),
-                  ],
-                ),
+              CustomTabBarView(
+                children: [
+                  CurrentUserRelations(
+                    controller: controller,
+                    currentUserFriends: CurrentUserFriends.mutual,
+                  ),
+                  CurrentUserRelations(
+                    controller: controller,
+                    currentUserFriends: CurrentUserFriends.following,
+                  ),
+                  CurrentUserRelations(
+                    controller: controller,
+                    currentUserFriends: CurrentUserFriends.followers,
+                  ),
+                ],
               ),
-              _createChatButton(),
+              _createChatButton,
             ],
           ),
         ),
@@ -86,19 +114,19 @@ class AddUsersPage extends GetView<AddUsersController> {
     );
   }
 
-  Widget _createChatButton() {
+  Widget get _createChatButton {
     return GetBuilder<AddUsersController>(
       builder: (_) {
         if (controller.selectedUser.isNotEmpty) {
-          return TextButton(
+          return MyRegistrationButton(
+            toUpperCase: false,
+            secondaryColor: Colors.white,
+            title: controller.selectedUser.length > 1
+                ? "Create Group Chat"
+                : "Chat With ${controller.selectedUser.first.username}",
             onPressed: () {
               controller.createChat();
             },
-            child: Text(
-              controller.selectedUser.length > 1
-                  ? "Create Group Chat"
-                  : "Chat With ${controller.selectedUser.first.username}",
-            ),
           );
         } else {
           return const SizedBox();

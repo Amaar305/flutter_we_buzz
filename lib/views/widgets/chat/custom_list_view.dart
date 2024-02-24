@@ -7,10 +7,13 @@ import 'package:hi_tweet/services/firebase_service.dart';
 import 'package:hi_tweet/views/utils/my_date_utils.dart';
 
 // models
-import '../../../model/chat_message_model.dart';
+import '../../../model/chat_model.dart';
+import '../../../model/message_enum_type.dart';
+import '../../../model/message_model.dart';
 
 // Widgets
 
+import '../../../model/we_buzz_user_model.dart';
 import '../rounded_image_network.dart';
 
 class CustomListViewTile extends StatelessWidget {
@@ -85,6 +88,7 @@ class CustomListViewTileWithActivity extends StatelessWidget {
     this.onLongPress,
     required this.sentime,
     this.messageDoc,
+    this.isClassRep = false,
   });
 
   final double height;
@@ -95,6 +99,7 @@ class CustomListViewTileWithActivity extends StatelessWidget {
   final bool isActivity;
   final bool onlineStatus;
   final bool isStaff;
+  final bool isClassRep;
   final bool isChatPage;
   final String sentime;
   final String? messageDoc;
@@ -141,8 +146,14 @@ class CustomListViewTileWithActivity extends StatelessWidget {
                   fontSize: 12,
                 ),
               ),
-        trailing:
-            !isChatPage ? (isStaff ? const Icon(Icons.verified) : null) : null
+        trailing: !isChatPage
+            ? (isStaff
+                ? Icon(
+                    isClassRep ? Icons.done_outline : Icons.verified_outlined,
+                    size: 20,
+                  )
+                : null)
+            : null
         // : messageDoc == null
         //     ? const Text('data')
         //     : tileTrailingInfo(),
@@ -166,7 +177,7 @@ class CustomListViewTileWithActivity extends StatelessWidget {
 
             final message = snapshot.data;
 
-            if (message!.read.isEmpty &&
+            if (message!.status == MessageStatus.notView &&
                 message.senderID != FirebaseAuth.instance.currentUser!.uid) {
               return Container(
                 height: 15,
@@ -196,4 +207,74 @@ Stream<MessageModel> stream(String chatDoc, String messageDoc) {
       .doc(messageDoc)
       .snapshots()
       .map((doc) => MessageModel.fromDocumentSnapshot(doc));
+}
+
+class CustomChatTileWithActivity extends StatelessWidget {
+  const CustomChatTileWithActivity({
+    super.key,
+    required this.user,
+    required this.chat,
+    this.onTap,
+    required this.title,
+    required this.height,
+    required this.isActivity,
+    required this.lastMessage,
+    required this.imageUrl,
+    this.trailing,
+    required this.isOnline,
+  });
+
+  final WeBuzzUser user;
+  final Conversation chat;
+  final void Function()? onTap;
+  final double height;
+  final bool isActivity;
+  final bool isOnline;
+  final String title;
+  final String imageUrl;
+  final String lastMessage;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      onTap: onTap,
+      minVerticalPadding: height * 0.20,
+      leading: RoundedImageNetworkWithStatusIndicator(
+        onlineStatus: isOnline,
+        key: UniqueKey(),
+        size: height / 2,
+        imageUrl: imageUrl,
+        isOnline: user.isOnline,
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: isActivity
+          ? Row(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SpinKitThreeBounce(
+                  color: Colors.white,
+                  size: height * 0.10,
+                ),
+              ],
+            )
+          : Text(
+              lastMessage,
+              maxLines: 1,
+              style: const TextStyle(
+                fontWeight: FontWeight.w400,
+                fontSize: 12,
+              ),
+            ),
+      trailing: trailing,
+    );
+  }
 }

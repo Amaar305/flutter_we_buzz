@@ -1,20 +1,21 @@
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:nb_utils/nb_utils.dart';
 
+import '../../../model/documents/program_model.dart';
 import '../../../model/we_buzz_user_model.dart';
 import '../../../services/firebase_constants.dart';
 import '../../../services/firebase_service.dart';
 import '../../../services/location_services.dart';
 import '../../registration/login_page.dart';
+import '../../registration/welcome_page.dart';
 import '../../utils/custom_full_screen_dialog.dart';
 import '../../utils/custom_snackbar.dart';
+import 'graduent_page.dart';
 import 'my_app.dart';
+import 'suspended_user_page.dart';
 
 class AppController extends GetxController {
   static AppController instance = Get.find();
@@ -37,24 +38,28 @@ class AppController extends GetxController {
   TextEditingController? phoneEditingController;
   TextEditingController? lavelEditingController;
 
-  bool obscureText = false;
-
-  // email, password and name..
+  // email, password and name.. of the logged In user
   late Rx<User?> _user;
 
   RxList<WeBuzzUser> weBuzzUsers = RxList<WeBuzzUser>([]);
+  RxList<ProgramModel> programs = RxList<ProgramModel>([]);
 
+  // Current user instance
   WeBuzzUser? currentUser;
+
+  // Rx<WeBuzzUser>? loggedInUser;
+
+  // Stream<WeBuzzUser> _streamCurrentUser(String id) {
+  //   return FirebaseService.firebaseFirestore
+  //       .collection(firebaseWeBuzzUserCollection)
+  //       .doc(id)
+  //       .snapshots()
+  //       .map((doc) => WeBuzzUser.fromDocument(doc));
+  // }
 
   void changeTabIndex(int index) {
     tabIndex = index;
     update();
-  }
-
-  // username generator by currentuser email
-  String usernameGenerator(String email) {
-    final username = email.split('@');
-    return username.first;
   }
 
   String city = '';
@@ -68,10 +73,9 @@ class AppController extends GetxController {
     }
   }
 
-  void canOrCannotSee() {
-    obscureText = !obscureText;
-    update();
-  }
+  // ScreenshotController screenshotController = ScreenshotController();
+  // late ShakeDetector shakeDetector;
+  // late GlobalKey<ScaffoldState> scaffoldKey;
 
   @override
   void onInit() {
@@ -104,9 +108,7 @@ class AppController extends GetxController {
     // ever function takes a listener (Firebase user),
     // and callback method, anytime something changes, the method will be notified
     ever(_user, _initialScreensSettings);
-    update();
-
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(const Duration(seconds: 1), () {
       if (currentUser != null) {
         bioEditingController!.text = currentUser!.bio;
         editNameEditingController!.text = currentUser!.name;
@@ -114,27 +116,90 @@ class AppController extends GetxController {
         phoneEditingController!.text = currentUser!.phone ?? '';
       }
     });
+
+    programs.bindStream(_streamPrograms());
+
+    // Future.delayed(
+    //   const Duration(seconds: 10),
+    //   () {
+    //     try {
+    //       shakeDetector = ShakeDetector.waitForStart(
+    //         onPhoneShake: () {
+    //           // Do stuff on phone shake
+    //           captureAndReportBug();
+    //         },
+    //         minimumShakeCount: 1,
+    //         shakeSlopTimeMS: 500,
+    //         shakeCountResetTime: 3000,
+    //         shakeThresholdGravity: 2.7,
+    //       );
+    //       shakeDetector.startListening();
+    //     } catch (e) {
+    //       log('Error trying to register the shake detecter');
+    //       log(e);
+    //     }
+    //   },
+    // );
   }
 
   // Navigations configuration
   void _initialScreensSettings(User? user) async {
     if (user == null) {
-      debugPrint("LOGGING");
-      Get.offAll(() => const LoginPage());
+      await Future.delayed(const Duration(milliseconds: 300));
+      _navigateToWelcomePage();
     } else {
-      await Future.delayed(const Duration(milliseconds: 200))
-          .whenComplete(() async {
-        await fetchUserDetails(_user.value!.uid);
-      });
+      final logginResult = await fetchUserDetails(user.uid);
+      await Future.delayed(const Duration(milliseconds: 300));
 
-      debugPrint("WELCOME");
-      Get.offAll(() => const MyBottomNavBar());
-      update();
+      if (logginResult) _navigateToHomePage();
     }
   }
 
+  _navigateToWelcomePage() {
+    bool isSuspended = currentUser != null ? currentUser!.isSuspended : false;
+
+    // bool isUndergraduate =
+    //     currentUser != null ? currentUser!.isUndergraduate : false;
+
+    // bool hasPaid = currentUser != null ? currentUser!.hasPaid : false;
+
+    if (isSuspended) {
+      Get.offAllNamed(SuspendedUserPage.routeName);
+    } 
+    
+    // else if (isUndergraduate == false && hasPaid == false) {
+    //   Get.offAllNamed(GraduantPage.routeName);
+    // } 
+    
+    else {
+      Get.offAllNamed(WelcomePage.routeName);
+    }
+  }
+
+  _navigateToHomePage() {
+    bool isSuspended = currentUser != null ? currentUser!.isSuspended : false;
+    // bool isUndergraduate =
+    //     currentUser != null ? currentUser!.isUndergraduate : false;
+    // bool hasPaid = currentUser != null ? currentUser!.hasPaid : false;
+
+    if (isSuspended) {
+      Get.offAllNamed(SuspendedUserPage.routeName);
+    // } else if (isUndergraduate == false && hasPaid == false) {
+    //   Get.offAllNamed(GraduantPage.routeName);
+    }
+     else {
+      Get.offAll(() => const MyBottomNavBar());
+    }
+  }
+
+  // username generator by currentuser email
+  String usernameGenerator(String email) {
+    final username = email.split('@');
+    return username.first;
+  }
+
 // Get current user info
-  Future<void> fetchUserDetails(String currentId) async {
+  Future<bool> fetchUserDetails(String currentId) async {
     try {
       final result = await FirebaseService.firebaseFirestore
           .collection(firebaseWeBuzzUserCollection)
@@ -143,7 +208,7 @@ class AppController extends GetxController {
 
       if (result.data() != null) {
         currentUser = WeBuzzUser.fromDocument(result);
-        update();
+
         await FirebaseService().getFirebaseMessagingToken();
 
         FirebaseService.updateActiveStatus(true);
@@ -158,16 +223,12 @@ class AppController extends GetxController {
           isStaff: false,
           isAdmin: false,
           notification: true,
-          isCompleteness: false,
+          premium: false,
           isVerified: false,
           createdAt: Timestamp.now(),
           lastActive: DateTime.now().millisecondsSinceEpoch.toString(),
           location: city,
-          pushToken: '',
-          followers: [],
-          following: [],
-          savedBuzz: [],
-          blockedUsers: [],
+          isUndergraduate: true,
         );
         await FirebaseService.createUserInFirestore(
                 weBuzzUser, auth.currentUser!.uid)
@@ -186,8 +247,8 @@ class AppController extends GetxController {
           'No user associated to email ${auth.currentUser!.email} in our database!, you might try to create another account.',
         );
       }
-
       update();
+      return true;
     } catch (e) {
       debugPrint(e.toString());
       CustomSnackBar.showSnackBar(
@@ -200,6 +261,8 @@ class AppController extends GetxController {
       );
       logOut();
     }
+
+    return false;
   }
 
   void logOut() async {
@@ -208,6 +271,7 @@ class AppController extends GetxController {
     // for updating user status isOnline to false
 
     await FirebaseService.updateActiveStatus(false);
+    // await FirebaseService.updateActiveStatus(false);
     // ChatController.instance.weBuzzLists.value = [];
 
     try {
@@ -215,7 +279,6 @@ class AppController extends GetxController {
         auth = FirebaseAuth.instance;
         CustomFullScreenDialog.cancleDialog();
       });
-      obscureText = false;
     } catch (e) {
       CustomFullScreenDialog.cancleDialog();
       CustomSnackBar.showSnackBar(
@@ -225,213 +288,9 @@ class AppController extends GetxController {
         backgroundColor:
             Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
       );
-      Get.offAllNamed(LoginPage.routeName);
+      Get.offAllNamed(MyLoginPage.routeName);
     }
     update();
-  }
-
-  void clearTextControllers() {
-    emailEditingController.clear();
-    passwordEditingController.clear();
-    nameEditingController.clear();
-
-    phoneEditingController!.clear();
-    lavelEditingController!.clear();
-    bioEditingController!.clear();
-    obscureText = false;
-  }
-
-  void registration(int provider) async {
-    if (provider == 0) {
-      // Login
-      CustomFullScreenDialog.showDialog();
-      try {
-        await auth.signInWithEmailAndPassword(
-          email: emailEditingController.text.trim(),
-          password: passwordEditingController.text.trim(),
-        );
-        QuerySnapshot<Map<String, dynamic>> result = await FirebaseService
-            .firebaseFirestore
-            .collection(firebaseWeBuzzUserCollection)
-            .where('email', isEqualTo: emailEditingController.text.trim())
-            .get();
-
-        if (result.docs.isEmpty) {
-          CustomFullScreenDialog.cancleDialog();
-          CustomSnackBar.showSnackBar(
-            context: Get.context,
-            title: 'Warning!',
-            message:
-                'No user associated to authenticated email ${emailEditingController.text}',
-            backgroundColor:
-                Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
-          );
-          debugPrint(
-              'No user associated to authenticated email ${emailEditingController.text}');
-          return;
-        }
-
-        if (result.docs.length != 1) {
-          CustomFullScreenDialog.cancleDialog();
-          CustomSnackBar.showSnackBar(
-            context: Get.context,
-            title: 'Warning!',
-            message:
-                'More than one user associated to email ${emailEditingController.text}',
-            backgroundColor:
-                Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
-          );
-          debugPrint(
-              'More than one user associated to email ${emailEditingController.text}');
-          return;
-        }
-        clearTextControllers();
-        update();
-      } on FirebaseAuthException catch (err) {
-        CustomFullScreenDialog.cancleDialog();
-
-        if (err.code.contains('INVALID_LOGIN_CREDENTIALS')) {
-          CustomSnackBar.showSnackBar(
-            context: Get.context,
-            title: "About user",
-            message: 'Invalid email address or password',
-            backgroundColor:
-                Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
-          );
-        } else {
-          CustomSnackBar.showSnackBar(
-            context: Get.context,
-            title: "About user",
-            message: err.message.toString(),
-            backgroundColor:
-                Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
-          );
-        }
-      } catch (e) {
-        CustomFullScreenDialog.cancleDialog();
-        CustomSnackBar.showSnackBar(
-          context: Get.context,
-          title: "About user",
-          message: "Something went wrong, try again later!",
-          backgroundColor:
-              Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
-        );
-      }
-    } else if (provider == 1) {
-      // register
-      CustomFullScreenDialog.showDialog();
-      // get city name
-
-      try {
-        final credential = await auth.createUserWithEmailAndPassword(
-          email: emailEditingController.text.trim(),
-          password: passwordEditingController.text.trim(),
-        );
-        if (credential.user == null) {
-          CustomFullScreenDialog.cancleDialog();
-          CustomSnackBar.showSnackBar(
-            context: Get.context,
-            title: 'Warning!',
-            message: 'We can\'t register you at the moment!',
-            backgroundColor:
-                Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
-          );
-          return;
-        }
-        final campusBuzzUser = WeBuzzUser(
-          userId: credential.user!.uid,
-          email: emailEditingController.text.trim(),
-          username: usernameGenerator(emailEditingController.text.trim()),
-          isOnline: true,
-          isStaff: false,
-          isAdmin: false,
-          notification: true,
-          createdAt: Timestamp.now(),
-          pushToken: '',
-          isCompleteness: false,
-          isVerified: false,
-          location: city,
-          name: nameEditingController.text.trim(),
-          lastActive: DateTime.now().millisecondsSinceEpoch.toString(),
-          followers: [],
-          following: [],
-          savedBuzz: [],
-          blockedUsers: [],
-        );
-
-        await FirebaseService.createUserInFirestore(
-                campusBuzzUser, credential.user!.uid)
-            .then((val) {
-          clearTextControllers();
-        });
-
-        update();
-      } on FirebaseAuthException catch (err) {
-        CustomFullScreenDialog.cancleDialog();
-        CustomSnackBar.showSnackBar(
-          context: Get.context,
-          title: "About user",
-          message: err.message.toString(),
-          backgroundColor:
-              Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
-        );
-      } catch (e) {
-        CustomSnackBar.showSnackBar(
-          context: Get.context,
-          title: "About user",
-          message: "Something went wrong, try again later!",
-          backgroundColor:
-              Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
-        );
-        CustomFullScreenDialog.cancleDialog();
-      }
-    } else {
-      return;
-    }
-  }
-
-// Edit user profile
-  void editUserInfo() async {
-    if (editNameEditingController!.text.isEmpty) {
-      Get.snackbar(
-        'Warning',
-        'Name cannot be empty!',
-        duration: const Duration(seconds: 2),
-      );
-    } else {
-      CustomFullScreenDialog.showDialog();
-      try {
-        await _collectionReference.doc(auth.currentUser!.uid).update({
-          'bio': bioEditingController!.text.isEmpty
-              ? currentUser!.bio
-              : bioEditingController!.text.trim(),
-          'name': editNameEditingController!.text.isEmpty
-              ? currentUser!.name
-              : editNameEditingController!.text.trim(),
-          'phone': phoneEditingController!.text.isEmpty
-              ? currentUser!.phone
-              : phoneEditingController!.text.trim(),
-          'level': lavelEditingController!.text.isEmpty
-              ? currentUser!.level
-              : lavelEditingController!.text.trim(),
-        }).whenComplete(() {
-          CustomFullScreenDialog.cancleDialog();
-          Get.back();
-        });
-        await fetchUserDetails(auth.currentUser!.uid);
-        update();
-      } catch (e) {
-        CustomFullScreenDialog.cancleDialog();
-        CustomSnackBar.showSnackBar(
-          context: Get.context,
-          title: "Warning!",
-          message: "Something wen't wrong, try again later!",
-          backgroundColor:
-              Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
-        );
-      }
-      update();
-    }
   }
 
 // update user dm privacy
@@ -441,26 +300,6 @@ class AppController extends GetxController {
       await FirebaseService.updateUserData(
         {
           "directMessagePrivacy": directMessagePrivacy,
-        },
-        FirebaseAuth.instance.currentUser!.uid,
-      ).whenComplete(() => CustomFullScreenDialog.cancleDialog());
-      await fetchUserDetails(auth.currentUser!.uid);
-    } catch (e) {
-      CustomFullScreenDialog.cancleDialog();
-
-      log(e);
-      log("Error updating user privacy");
-    }
-    update();
-  }
-
-// update user level
-  void updateUserLevel(String level) async {
-    CustomFullScreenDialog.showDialog();
-    try {
-      await FirebaseService.updateUserData(
-        {
-          "level": level,
         },
         FirebaseAuth.instance.currentUser!.uid,
       ).whenComplete(() => CustomFullScreenDialog.cancleDialog());
@@ -692,130 +531,20 @@ class AppController extends GetxController {
     }
   }
 
-  // Has the image been picked?
-  bool isImagePicked = false;
-
-// Provides an easy way to pick an image from the image gallery
-  final ImagePicker _picker = ImagePicker();
-
-  // Convert the picked image to file image by using the picker.path property
-  File? pickedImagePath;
-
-  Future<File?> _selectImage() async {
+  void updateLastBook(String lastBook) async {
     try {
-      final image = await _picker.pickImage(
-          source: ImageSource.gallery, imageQuality: 82);
+      if (FirebaseAuth.instance.currentUser == null) return;
+      // user is null? quit
 
-      // Convert the picked image to file image by using the picker.path property
-      pickedImagePath = File(image!.path);
+      final userId = FirebaseAuth.instance.currentUser!.uid;
 
-      // Set the isImagePicked to true, to update the UI
-      isImagePicked = true;
+      await FirebaseService.updateUserData({'lastBook': lastBook}, userId);
 
-      return pickedImagePath;
+      fetchUserDetails(userId);
     } catch (e) {
-      log(e.toString());
-      CustomFullScreenDialog.cancleDialog();
-      CustomSnackBar.showSnackBar(
-        context: Get.context,
-        title: "Image picker",
-        message: "You haven't picked an image!",
-        backgroundColor:
-            Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
-      );
-      return null;
+      log('Error trying to update the last book of a user');
+      log(e);
     }
-  }
-
-// Upload/Delete/Update user profule
-  void uploadDeleteUpdateUserProfileUrl() async {
-    if (currentUser != null) {
-      // check if userimage is null
-      if (currentUser!.imageUrl == null) {
-        CustomFullScreenDialog.showDialog();
-        try {
-          // pick image from gallery
-          File? pickedImagePath = await _selectImage();
-
-          // upload image to storage
-          if (pickedImagePath != null && isImagePicked && currentUser != null) {
-            final downloadedImage = await FirebaseService.uploadImage(
-                pickedImagePath, 'users/${currentUser!.userId}');
-
-            // update the user image field in firestore
-            await _collectionReference.doc(auth.currentUser!.uid).update({
-              'imageUrl': downloadedImage,
-            }).whenComplete(() {
-              CustomFullScreenDialog.cancleDialog();
-            });
-          }
-
-          // update the user image field in firestore
-          await fetchUserDetails(auth.currentUser!.uid);
-
-          isImagePicked = false;
-          pickedImagePath = null;
-          update();
-        } catch (e) {
-          log(e.toString());
-          CustomFullScreenDialog.cancleDialog();
-          CustomSnackBar.showSnackBar(
-            context: Get.context,
-            title: "Error",
-            message: "Something went wrong try again later!",
-            backgroundColor:
-                Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
-          );
-        }
-      } else {
-        CustomFullScreenDialog.showDialog();
-        try {
-          // delete the current user image from storage
-          await FirebaseService.deleteImage(currentUser!.imageUrl!);
-
-          // await Future.delayed(const Duration(milliseconds: 100));
-
-          // pick image from gallery
-          File? pickedImagePath = await _selectImage();
-
-          if (pickedImagePath != null && isImagePicked && currentUser != null) {
-            // upload image to storage
-            final downloadedImage = await FirebaseService.uploadImage(
-                pickedImagePath, 'users/${currentUser!.userId}');
-
-            // update the user image field in firestore
-            await _collectionReference.doc(auth.currentUser!.uid).update({
-              'imageUrl': downloadedImage,
-            }).whenComplete(() {
-              CustomFullScreenDialog.cancleDialog();
-            });
-          }
-
-          await fetchUserDetails(auth.currentUser!.uid);
-          isImagePicked = false;
-          pickedImagePath = null;
-          update();
-        } catch (e) {
-          log(e.toString());
-          CustomFullScreenDialog.cancleDialog();
-          CustomSnackBar.showSnackBar(
-            context: Get.context,
-            title: "Error",
-            message: "Something went wrong try again later!",
-            backgroundColor:
-                Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
-          );
-        }
-      }
-    }
-
-    // fetch user info again!
-  }
-
-  @override
-  void onClose() {
-    super.onClose();
-    clearTextControllers();
   }
 
   Stream<List<WeBuzzUser>> _streamWeBuzzUsers() {
@@ -826,4 +555,75 @@ class AppController extends GetxController {
               return WeBuzzUser.fromDocument(user);
             }).toList());
   }
+
+  Stream<List<ProgramModel>> _streamPrograms() {
+    return FirebaseService.firebaseFirestore
+        .collection(firebaseProgramsCollection)
+        .orderBy('createdAt')
+        .snapshots()
+        .map((query) =>
+            query.docs.map((item) => ProgramModel.fromDocument(item)).toList());
+  }
+
+  @override
+  void onClose() {
+    super.onClose();
+    editNameEditingController!.dispose();
+    nameEditingController.dispose();
+    lavelEditingController!.dispose();
+    passwordEditingController.dispose();
+    phoneEditingController!.dispose();
+    editNameEditingController!.dispose();
+    // shakeDetector.stopListening();
+  }
+
+  // void captureAndReportBug() async {
+  //   try {
+  //     Uint8List? capturedImage = await screenshotController.capture(
+  //         pixelRatio: 4 / 2, delay: const Duration(milliseconds: 150));
+
+  //     final directory = (await getTemporaryDirectory()).path;
+  //     final imageFile = File('$directory/screenshot.png');
+
+  //     imageFile.writeAsBytesSync(capturedImage!);
+
+  //     // Save screenshot to device gallery
+  //     // final result = await ImageGallerySaver.saveImage(capturedImage);
+  //     // log('Image saved to device gallery $result');
+
+  //     showReportDialog(imageFile);
+  //     imageFile.delete();
+  //   } catch (e) {
+  //     log("Error trying to take screenshot");
+  //     log(e);
+  //   }
+  // }
+
+  // void showReportDialog(File imageFile) async {
+  //   Get.dialog(
+  //     WillPopScope(
+  //       child: AlertDialog(
+  //         title: const Text('Report Bug'),
+  //         content: const Text('Do you want to report this issue?'),
+  //         actions: [
+  //           CustomMaterialButton(
+  //             title: 'Cancel',
+  //             onPressed: () => Get.back(),
+  //           ),
+  //           CustomMaterialButton(
+  //             title: 'Report',
+  //             onPressed: () {
+  //               Get.back();
+  //               Get.to(() => ReportBugPage(screenshot: imageFile));
+  //             },
+  //           )
+  //         ],
+  //       ),
+  //       onWillPop: () => Future.value(false),
+  //     ),
+  //     barrierDismissible: false,
+  //     barrierColor: kPrimary.withOpacity(0.03),
+  //     useSafeArea: true,
+  //   );
+  // }
 }

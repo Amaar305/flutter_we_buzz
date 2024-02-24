@@ -21,14 +21,15 @@ class GroupChatInfo extends GetView<GroupChatInfoController> {
       appBar: AppBar(
         title: const Text('Group information'),
         actions: [
-          IconButton(
-            onPressed: () {
-              showSheet(context);
-            },
-            icon: const Icon(
-              Icons.person_add_alt,
-            ),
-          )
+          if (groupChat.createdBy == FirebaseAuth.instance.currentUser!.uid)
+            IconButton(
+              onPressed: () {
+                showSheet(context);
+              },
+              icon: const Icon(
+                Icons.person_add_alt,
+              ),
+            )
         ],
       ),
       body: GroupBody(groupChat: groupChat),
