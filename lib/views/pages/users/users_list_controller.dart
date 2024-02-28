@@ -1,15 +1,15 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hi_tweet/services/firebase_constants.dart';
-import 'package:hi_tweet/views/pages/dashboard/my_app_controller.dart';
-import 'package:hi_tweet/views/widgets/home/my_buttons.dart';
 import 'package:nb_utils/nb_utils.dart';
 
 import '../../../model/notification_model.dart';
 import '../../../model/we_buzz_user_model.dart';
+import '../../../services/firebase_constants.dart';
 import '../../../services/firebase_service.dart';
 import '../../../services/notification_services.dart';
+import '../../widgets/home/my_buttons.dart';
+import '../dashboard/my_app_controller.dart';
 
 class UserListController extends GetxController {
   RxList<WeBuzzUser> allUsers = RxList([]);
@@ -35,8 +35,8 @@ class UserListController extends GetxController {
   }
 
   void makeMeStaff(WeBuzzUser user, bool staff) {
-    final user = AppController.instance.currentUser;
-    if (user == null || !user.isAdmin) return;
+    final me = AppController.instance.currentUser;
+    if (me == null || me.isAdmin == false) return;
     Get.dialog(
       AlertDialog(
         title: const Text('Staff?'),
@@ -44,6 +44,25 @@ class UserListController extends GetxController {
           'Are you sure to make ${user.name} a staff of Webuzz? They\'ll be able to delete and supend any buzz and user.',
         ),
         actions: [
+          CustomMaterialButton(
+            title: 'Verify ${user.name}',
+            onPressed: () async {
+              Get.back();
+
+              await FirebaseService.updateUserData(
+                      {'isVerified': !user.isVerified}, user.userId)
+                  .whenComplete(() {
+                if (staff) {
+                  NotificationServices.sendNotification(
+                    targetUser: user,
+                    notificationType: NotificationType.isVerified,
+                    notifiactionRef: 'isVerified',
+                  );
+                  toast('${user.name} is successifully a verified now.');
+                }
+              });
+            },
+          ),
           CustomMaterialButton(
             title: 'Class Monitor',
             onPressed: () async {

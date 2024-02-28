@@ -31,11 +31,18 @@ class ReplyController extends GetxController {
         FirebaseAuth.instance.currentUser != null) {
       final hashtags = hashTagSystem(textEditingController.text);
       final urls = extractUrls(textEditingController.text);
+
+      String replyText = textEditingController.text.trim(); //extract the text
+
+      textEditingController.clear(); // clear the textEditingController
+
+      final currentUserId = FirebaseAuth.instance.currentUser!.uid;
+
       WeBuzz replyBuzz = WeBuzz(
         id: MethodUtils.generatedId,
         docId: '',
-        authorId: FirebaseAuth.instance.currentUser!.uid,
-        content: textEditingController.text.trim(),
+        authorId: currentUserId,
+        content: replyText,
         createdAt: Timestamp.now(),
         reBuzzsCount: 0,
         buzzType: BuzzType.reply.name,
@@ -54,13 +61,12 @@ class ReplyController extends GetxController {
         // Getting target user info, post owner
         final targetUser = await FirebaseService.userByID(weBuzz.authorId);
 
-        if (targetUser == null) return;
+        if (targetUser == null || weBuzz.refrence == null) return;
 
         await weBuzz.refrence!
             .collection(firebaseRepliesCollection)
             .add(replyBuzz.toJson())
             .then((_) async {
-          textEditingController.clear();
           await FirebaseService.firebaseFirestore
               .collection(firebaseWeBuzzCollection)
               .doc(weBuzz.docId)
@@ -69,7 +75,7 @@ class ReplyController extends GetxController {
           });
         });
         // If current user is not equal to the post author, send the notification
-        if (weBuzz.authorId != FirebaseAuth.instance.currentUser!.uid) {
+        if (weBuzz.authorId != currentUserId) {
           NotificationServices.sendNotification(
             notificationType: NotificationType.postComment,
             targetUser: targetUser,

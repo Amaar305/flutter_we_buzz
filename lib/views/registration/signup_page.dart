@@ -56,8 +56,8 @@ class SignUpPage extends GetView<SignUpController> {
                               return 'Name must be greather than 5';
                             }
 
-                            if (value.length > 15) {
-                              return 'Name must be less than 15';
+                            if (value.length > 18) {
+                              return 'Name must be less than 18 characters';
                             }
                             return null;
                           },

@@ -39,6 +39,8 @@ class LectureNotesWidget extends StatelessWidget {
                   index == snapshot.docs.length &&
                   !snapshot.isFetchingMore;
 
+
+
               if (hasEnd) snapshot.fetchMore();
               if (snapshot.docs[index].exists == false) return const SizedBox();
 

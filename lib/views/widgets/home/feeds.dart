@@ -29,7 +29,6 @@ class Feeds extends StatelessWidget {
     }
 
     return FirestoreListView(
-      controller: controller.feedScrollController,
       query: controller.queryBuzz,
       itemBuilder: (context, doc) {
         final buzz = doc.data();

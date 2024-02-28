@@ -48,4 +48,28 @@ class NotificationController extends GetxController {
             .map((item) => NotificationModel.fromDocument(item))
             .toList());
   }
+
+  void clearAll() async {
+    try {
+      if (AppController.instance.currentUser == null) return;
+      final userId = AppController.instance.currentUser!.userId;
+      final query = await FirebaseService.firebaseFirestore
+          .collection(firebaseNotificationCollection)
+          .where('recipientId', isEqualTo: userId)
+          .get();
+
+      query.docs.forEach(_deleteNotification);
+    } catch (e) {
+      toast('Something went wrong');
+      log('Error trying to delete the notifications');
+      log(e);
+    }
+  }
+
+  void _deleteNotification(n) async {
+    await FirebaseService.firebaseFirestore
+        .collection(firebaseNotificationCollection)
+        .doc(n.id)
+        .delete();
+  }
 }

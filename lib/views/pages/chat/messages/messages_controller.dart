@@ -62,6 +62,8 @@ class MessageController extends GetxController {
   var hasNewLine = false;
   double size = 150;
 
+  String? _chatId;
+
   @override
   void onInit() {
     super.onInit();
@@ -100,6 +102,7 @@ class MessageController extends GetxController {
   }
 
   void startTyping(String chatID) async {
+    _chatId=chatID;
     try {
       await FirebaseService.updateChatData(chatID, {'is_activity': true});
     } catch (e) {
@@ -587,6 +590,7 @@ class MessageController extends GetxController {
 // update chat message read
   void updateChatMessageRead(String chatID, String messageDoc) async {
     try {
+      _chatId = chatID;
       await FirebaseService.updateChatMessageData(chatID, messageDoc, {
         "status": MessageStatus.viewed.name,
         "read": DateTime.now().millisecondsSinceEpoch.toString(),
@@ -888,5 +892,6 @@ class MessageController extends GetxController {
     super.onClose();
     messageEditingController.dispose();
     if (typingTimer != null) typingTimer!.cancel();
+    if (_chatId != null) stopTyping(_chatId!);
   }
 }

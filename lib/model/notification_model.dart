@@ -117,5 +117,6 @@ enum NotificationType {
   chat,
   staff,
   classRep,
+  isVerified,
   unknown
 }

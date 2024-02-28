@@ -36,7 +36,9 @@ import 'views/pages/settings/settings_controller.dart';
 import 'views/pages/settings/verify_user_page.dart';
 import 'views/pages/sponsor/sponsor_agreement_page.dart';
 import 'views/pages/sponsor/sponsor_page.dart';
+import 'views/pages/staff/class_rep_congrat_page.dart';
 import 'views/pages/staff/staff_congrat_page.dart';
+import 'views/pages/staff/verify_congrat_page.dart';
 import 'views/pages/users/users._list_page.dart';
 import 'views/registration/forget_password.dart';
 import 'views/registration/login_page.dart';
@@ -296,6 +298,18 @@ class MyApp extends StatelessWidget {
         GetPage(
           name: BugReportIssuesPage.routeName,
           page: () => const BugReportIssuesPage(),
+          transition: Transition.zoom,
+          curve: Curves.easeIn,
+        ),
+        GetPage(
+          name: ClassCongratulationPage.routeName,
+          page: () => const ClassCongratulationPage(),
+          transition: Transition.zoom,
+          curve: Curves.easeIn,
+        ),
+        GetPage(
+          name: VerifyCongratulationPage.routeName,
+          page: () => const VerifyCongratulationPage(),
           transition: Transition.zoom,
           curve: Curves.easeIn,
         ),

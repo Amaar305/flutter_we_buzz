@@ -113,6 +113,8 @@ class CurrentUsersProgrammesBooks extends StatelessWidget {
         if (controller.currentUser == null ||
             FirebaseAuth.instance.currentUser == null) {
           return const SizedBox();
+        } else if (controller.currentUser!.program == null) {
+          return const SizedBox();
         } else {
           return Column(
             mainAxisAlignment: MainAxisAlignment.start,
@@ -135,7 +137,8 @@ class CurrentUsersProgrammesBooks extends StatelessWidget {
                     final lectures = ProgramsController.instance.lectureNotes
                         .where((note) =>
                             note.programName ==
-                            controller.currentUser!.program!)
+                                controller.currentUser!.program! &&
+                            note.level == controller.currentUser!.level)
                         .toList();
 
                     final notes = lectures.length > 4
@@ -195,6 +198,7 @@ class FreeBooksWidget extends StatelessWidget {
                   query: FirebaseService.firebaseFirestore
                       .collection(firebaseCoursesCollection)
                       .where('isFreeBook', isEqualTo: true)
+                      .where('level', isEqualTo: controller.currentUser!.level)
                       .limit(4)
                       .withConverter(
                         fromFirestore: (snapshot, options) =>

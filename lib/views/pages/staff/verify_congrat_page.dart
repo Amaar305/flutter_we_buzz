@@ -3,10 +3,10 @@ import 'package:nb_utils/nb_utils.dart';
 
 import '../../utils/constants.dart';
 
-class StaffCongratulationPage extends StatelessWidget {
-  const StaffCongratulationPage({super.key});
+class VerifyCongratulationPage extends StatelessWidget {
+  const VerifyCongratulationPage({super.key});
 
-  static const String routeName = '/staff-c-page';
+  static const String routeName = '/verify-c-page';
 
   @override
   Widget build(BuildContext context) {
@@ -19,10 +19,10 @@ class StaffCongratulationPage extends StatelessWidget {
           children: [
             Image.asset('assets/images/sdtrophy.png', height: 300),
             32.height,
-            Text('Yah! Staff', style: boldTextStyle(size: 20)),
+            Text('Yah! Verify User', style: boldTextStyle(size: 20)),
             16.height,
             Text(
-              'Congratulation, you are now a saff of Webuzz!, yeah, you can suspend a user and a buzz!',
+              'Congratulation, you are now a verify user of Webuzz!',
               style: secondaryTextStyle(),
               textAlign: TextAlign.center,
             ).paddingSymmetric(vertical: 8, horizontal: 60),

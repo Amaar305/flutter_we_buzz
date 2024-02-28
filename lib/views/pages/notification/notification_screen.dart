@@ -25,48 +25,67 @@ class NotificationsScreen extends GetView<NotificationController> {
       appBar: AppBar(
         title: const Text('Notification'),
         actions: [
-          DropdownButton(
-            icon: const Icon(Icons.sort),
-            underline: Container(),
-            items: const [
-              DropdownMenuItem(
-                value: 'asc',
-                child: Row(
-                  children: [
-                    // ignore: deprecated_member_use
-                    Icon(FontAwesomeIcons.sortAlphaUp),
-                    SizedBox(
-                      width: 10,
-                    ),
-                    Text('Asc')
-                  ],
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: DropdownButton(
+              icon: const Icon(Icons.sort),
+              underline: Container(),
+              items: const [
+                DropdownMenuItem(
+                  value: 'asc',
+                  child: Row(
+                    children: [
+                      // ignore: deprecated_member_use
+                      Icon(FontAwesomeIcons.sortAlphaUp),
+                      SizedBox(
+                        width: 10,
+                      ),
+                      Text('Asc')
+                    ],
+                  ),
                 ),
-              ),
-              DropdownMenuItem(
-                value: 'desc',
-                child: Row(
-                  children: [
-                    // ignore: deprecated_member_use
-                    Icon(FontAwesomeIcons.sortAlphaDesc),
-                    SizedBox(
-                      width: 10,
-                    ),
-                    Text('Desc')
-                  ],
+                DropdownMenuItem(
+                  value: 'desc',
+                  child: Row(
+                    children: [
+                      // ignore: deprecated_member_use
+                      Icon(FontAwesomeIcons.sortAlphaDesc),
+                      SizedBox(
+                        width: 10,
+                      ),
+                      Text('Desc')
+                    ],
+                  ),
                 ),
-              ),
-            ],
-            onChanged: (value) {
-              if (value == 'asc') {
-                controller.notifications.sort(
-                  (a, b) => a.timestamp.compareTo(b.timestamp),
-                );
-              } else if (value == 'desc') {
-                controller.notifications.sort(
-                  (a, b) => b.timestamp.compareTo(a.timestamp),
-                );
-              }
-            },
+                DropdownMenuItem(
+                  value: 'clear',
+                  child: Row(
+                    children: [
+                      // ignore: deprecated_member_use
+                      Icon(Icons.clear_all),
+                      SizedBox(
+                        width: 10,
+                      ),
+                      Text('Clear')
+                    ],
+                  ),
+                )
+              ],
+              onChanged: (value) {
+                if (value == 'asc') {
+                  controller.notifications.sort(
+                    (a, b) => a.timestamp.compareTo(b.timestamp),
+                  );
+                } else if (value == 'desc') {
+                  controller.notifications.sort(
+                    (a, b) => b.timestamp.compareTo(a.timestamp),
+                  );
+                } else if (value == 'clear') {
+                  controller.clearAll();
+                  // Clear all the notifiaction
+                }
+              },
+            ),
           )
         ],
       ),
@@ -231,6 +250,10 @@ class NotificationTile extends StatelessWidget {
           icon = const Icon(Icons.verified_outlined);
 
           break;
+        case NotificationType.isVerified:
+          icon = const Icon(Icons.verified_outlined);
+
+          break;
         case NotificationType.unknown:
           icon = const Icon(Icons.chat);
 
@@ -271,6 +294,10 @@ class NotificationTile extends StatelessWidget {
           break;
         case NotificationType.classRep:
           message = 'Class Monitor 🎉';
+
+          break;
+        case NotificationType.isVerified:
+          message = 'Verified User 🎉';
 
           break;
         case NotificationType.unknown:
@@ -358,9 +385,13 @@ class NotificationTile extends StatelessWidget {
             case NotificationType.staff:
               // Navigate to the the congratulation you're staff now page
               break;
-              
+
             case NotificationType.classRep:
-              // Navigate to the the congratulation you're staff now page
+              // Navigate to the the congratulation you're class rep now page
+              break;
+
+            case NotificationType.isVerified:
+              // Navigate to the the congratulation you're verified now page
               break;
             case NotificationType.unknown:
               // Do nothing
@@ -414,5 +445,3 @@ class NotificationTile extends StatelessWidget {
     );
   }
 }
-
-

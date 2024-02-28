@@ -66,6 +66,7 @@ class SignUpController extends GetxController {
       formKey.currentState!.save();
 
       try {
+        CustomFullScreenDialog.showDialog();
         final credential = await auth.createUserWithEmailAndPassword(
           email: emailEditingController.text.trim(),
           password: passwordEditingController.text.trim(),
@@ -120,6 +121,7 @@ class SignUpController extends GetxController {
               Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
         );
       } catch (e) {
+        CustomFullScreenDialog.cancleDialog();
         CustomSnackBar.showSnackBar(
           context: Get.context,
           title: "About user",
@@ -127,7 +129,6 @@ class SignUpController extends GetxController {
           backgroundColor:
               Theme.of(Get.context!).colorScheme.primary.withOpacity(0.5),
         );
-        CustomFullScreenDialog.cancleDialog();
       }
     }
   }

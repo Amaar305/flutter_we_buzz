@@ -76,7 +76,13 @@ class TopCardHeader extends StatelessWidget {
                               if (buzzOwner.isVerified) ...[
                                 2.width,
                                 const Icon(Icons.verified, size: 12)
-                              ],
+                              ] else if (buzzOwner.isClassRep) ...[
+                                2.width,
+                                const Icon(
+                                  Icons.supervisor_account_rounded,
+                                  size: 12,
+                                )
+                              ]
                             ],
                           ),
                           Text(

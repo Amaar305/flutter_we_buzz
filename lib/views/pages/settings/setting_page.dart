@@ -40,7 +40,7 @@ class SettingPage extends GetView<SettingsController> {
               const Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Text('Version: 1.2.0'),
+                  Text('Version:1.2.0+2'),
                 ],
               ),
             ],

@@ -208,10 +208,7 @@ class NotificationServices {
           );
 
           // Creating notification document refrence in firestore with the target user's id
-          await FirebaseService.createNotification(notificationModel)
-              .whenComplete(() {
-            toast("Created in the comment");
-          });
+          await FirebaseService.createNotification(notificationModel);
         }
         break;
 
@@ -354,7 +351,7 @@ class NotificationServices {
         break;
 
       case NotificationType.classRep:
-       // Creating instance of notificationmodel
+        // Creating instance of notificationmodel
         NotificationModel notificationModel = NotificationModel(
           id: MethodUtils.generatedId,
           type: notificationType,
@@ -374,7 +371,29 @@ class NotificationServices {
 
         // Creating notification document refrence in firestore with the target user's id
         await FirebaseService.createNotification(notificationModel);
-      break;
+        break;
+      case NotificationType.isVerified:
+        // Creating instance of notificationmodel
+        NotificationModel notificationModel = NotificationModel(
+          id: MethodUtils.generatedId,
+          type: notificationType,
+          senderId: currentUser.userId,
+          recipientId: targetUser.userId,
+          postOrUserReference: notifiactionRef,
+          timestamp: DateTime.now(),
+        );
+
+        await notifiactionRequest(
+          pushToken: targetUser.pushToken,
+          notificationBody: 'You\'re now officially verified user on Webuzz.',
+          title: targetUser.username,
+          type: notificationType.name,
+          messageRef: notifiactionRef,
+        );
+
+        // Creating notification document refrence in firestore with the target user's id
+        await FirebaseService.createNotification(notificationModel);
+        break;
       case NotificationType.unknown:
         toast('Unkown Notification');
         break;

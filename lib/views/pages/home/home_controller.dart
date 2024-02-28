@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:nb_utils/nb_utils.dart';
@@ -16,7 +14,6 @@ import '../../../model/report/report.dart';
 import '../../../model/save_buzz.dart';
 import '../../../model/we_buzz_user_model.dart';
 import '../../../model/we_buzz_model.dart';
-import '../../../services/bot_service.dart';
 import '../../../services/firebase_constants.dart';
 import '../../../services/firebase_service.dart';
 import '../../../services/notification_services.dart';
@@ -47,8 +44,8 @@ class HomeController extends GetxController {
   RxList<String> currenttUsersFollowers = RxList<String>([]);
   RxList<String> currenttUsersFollowing = RxList<String>([]);
 
-  ScrollController exploreScrollController = ScrollController();
-  ScrollController feedScrollController = ScrollController();
+  // ScrollController exploreScrollController = ScrollController();
+  // ScrollController feedScrollController = ScrollController();
   final isVisible = true.obs;
   final isVisible1 = true.obs;
 
@@ -79,14 +76,14 @@ class HomeController extends GetxController {
       return Future.value(message);
     });
 
-    exploreScrollController.addListener(() {
-      isVisible.value = exploreScrollController.position.userScrollDirection ==
-          ScrollDirection.forward;
-    });
-    feedScrollController.addListener(() {
-      isVisible1.value = feedScrollController.position.userScrollDirection ==
-          ScrollDirection.forward;
-    });
+    // exploreScrollController.addListener(() {
+    //   isVisible.value = exploreScrollController.position.userScrollDirection ==
+    //       ScrollDirection.forward;
+    // });
+    // feedScrollController.addListener(() {
+    //   isVisible1.value = feedScrollController.position.userScrollDirection ==
+    //       ScrollDirection.forward;
+    // });
     currenttUsersFollowers.bindStream(FirebaseService.streamFollowers(
         FirebaseAuth.instance.currentUser!.uid));
     currenttUsersFollowing.bindStream(FirebaseService.streamFollowing(
@@ -384,6 +381,8 @@ class HomeController extends GetxController {
           .doc(currentUser().userId)
           .get();
 
+          1.delay();
+
       if (!doc.exists) {
         await FirebaseService.firebaseFirestore
             .collection(firebaseWeBuzzCollection)
@@ -426,16 +425,13 @@ class HomeController extends GetxController {
             .toList());
   }
 
-  void startBot() async {
-    final text = await BotService().getData('Tell me I am genius please');
-    log(text);
-  }
+ 
 
   @override
   void onClose() {
     super.onClose();
-    exploreScrollController.dispose();
-    feedScrollController.dispose();
+    // exploreScrollController.dispose();
+    // feedScrollController.dispose();
     timer.cancel();
   }
 }

@@ -27,7 +27,6 @@ class ExploreBuzz extends StatelessWidget {
           return Text('Something went wrong! ${snapshot.error}');
         } else {
           return ListView.builder(
-            controller: controller.exploreScrollController,
             itemCount: snapshot.docs.length + 1,
             itemBuilder: (context, index) {
               final hasEnd = snapshot.hasMore &&

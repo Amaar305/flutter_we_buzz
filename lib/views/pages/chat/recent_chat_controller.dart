@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 
 import '../../../model/chat_model.dart';
@@ -13,24 +12,7 @@ import 'messages/messages_page.dart';
 
 class RecentChatController extends GetxController {
   static RecentChatController instance = Get.find();
-  ScrollController recentScrollController = ScrollController();
   final isVisible = true.obs;
-
-
-  @override
-  void onInit() {
-    super.onInit();
-    recentScrollController.addListener(() {
-      isVisible.value = recentScrollController.position.userScrollDirection ==
-          ScrollDirection.forward;
-    });
-  }
-
-  @override
-  void onClose() {
-    super.onClose();
-    recentScrollController.dispose();
-  }
 
   Stream<List<ChatConversation>> getChats() {
     return FirebaseService.firebaseFirestore

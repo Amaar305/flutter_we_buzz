@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hi_tweet/services/firebase_constants.dart';
 import 'package:hi_tweet/services/firebase_service.dart';
+import 'package:hi_tweet/services/image_picker_services.dart';
 import 'package:hi_tweet/views/widgets/home/my_buttons.dart';
 import 'package:nb_utils/nb_utils.dart';
 
@@ -86,6 +87,20 @@ void showBAlertDialog({
                   } else {
                     showBottomSheetForDeletion(buzzOwner, normalWebuzz);
                   }
+                },
+              ),
+            // Image saver
+            if (normalWebuzz.imageUrl != null &&
+                normalWebuzz.imageUrl.validateURL())
+              OptionItem(
+                icon: Icon(
+                  Icons.downloading,
+                  color: Theme.of(Get.context!).colorScheme.primary,
+                  size: 26,
+                ),
+                name: 'Save Image',
+                onTap: () {
+                  ImagePickerService.saveImage(normalWebuzz.imageUrl!);
                 },
               ),
             if (normalWebuzz.authorId != FirebaseAuth.instance.currentUser!.uid)

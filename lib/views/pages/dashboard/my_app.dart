@@ -41,7 +41,10 @@ class _MyBottomNavBarState extends State<MyBottomNavBar> {
                     ProfilePage(),
                   ],
                 ),
-                CustomAnimatedBottomBar(controller: controller),
+                Positioned(
+                  bottom: 20,
+                  child: CustomBottomBar(controller: controller),
+                ),
               ],
             ),
           );

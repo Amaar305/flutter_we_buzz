@@ -1,6 +1,10 @@
 import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:dio/dio.dart';
+import 'package:get/get.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nb_utils/nb_utils.dart';
 
@@ -59,6 +63,30 @@ class ImagePickerService {
       log('Error trying to crop image');
       log(e);
       return null;
+    }
+  }
+
+  static Future<void> saveImage(String imageUrl) async {
+    try {
+      if (!imageUrl.validateURL()) return;
+
+      var response = await Dio().get(
+        imageUrl,
+        options: Options(responseType: ResponseType.bytes),
+      );
+
+      final result = await ImageGallerySaver.saveImage(
+        Uint8List.fromList(response.data),
+        quality: 80,
+      );
+      if (result['isSuccess']) toast('Image Successifully Saved');
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      Get.back();
+      log(result);
+    } catch (e) {
+      toast('Error While Saving Image');
+      log("Error While Saving Image $e");
     }
   }
 }

@@ -21,19 +21,25 @@ class UsersPageList extends GetView<UserListController> {
         appBar: AppBar(
           title: const Text('Webuzz users'),
           actions: [
-            _DropdownButton(controller: controller),
-          ],
-        ),
-        body: Column(
-          children: [
-            CustomTabBar(list: controller.tabLists),
-            CustomTabBarView(
-              children: [
-                AllUsersWidget(controller: controller),
-                AllUsersWidget(controller: controller, isClassReps: true)
-              ],
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: _DropdownButton(controller: controller),
             ),
           ],
+        ),
+        body: Padding(
+          padding: kPadding,
+          child: Column(
+            children: [
+              CustomTabBar(list: controller.tabLists),
+              CustomTabBarView(
+                children: [
+                  AllUsersWidget(controller: controller),
+                  AllUsersWidget(controller: controller, isClassReps: true)
+                ],
+              ),
+            ],
+          ),
         ),
         floatingActionButton: TextButton.icon(
           onPressed: null,

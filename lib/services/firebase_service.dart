@@ -35,10 +35,13 @@ import '../views/pages/dashboard/my_app_controller.dart';
 
 // Constants Utils
 import '../views/pages/home/reply/reply_page.dart';
+import '../views/pages/staff/class_rep_congrat_page.dart';
 import '../views/pages/staff/staff_congrat_page.dart';
+import '../views/pages/staff/verify_congrat_page.dart';
 import '../views/pages/view_profile/view_profile_page.dart';
 import '../views/registration/login_page.dart';
 import 'firebase_constants.dart';
+import 'notification_services.dart';
 
 Future<void> handleBackgroundMessage(RemoteMessage message) async {}
 
@@ -168,8 +171,12 @@ class FirebaseService {
           Get.toNamed(StaffCongratulationPage.routeName);
           break;
         case NotificationType.classRep:
-          // Navigate to the the congratulation you're staff now page
-          Get.toNamed(StaffCongratulationPage.routeName);
+          // Navigate to the the congratulation you're class rep now page
+          Get.toNamed(ClassCongratulationPage.routeName);
+          break;
+        case NotificationType.isVerified:
+          // Navigate to the the congratulation you're isVerified now page
+          Get.toNamed(VerifyCongratulationPage.routeName);
           break;
         case NotificationType.unknown:
           // Do nothing
@@ -863,11 +870,23 @@ class FirebaseService {
             .doc(webuzz.docId)
             .collection(firebaseLikesPostCollection)
             .doc(userId)
-            .set({'userId': userId}).then((value) async {
+            .set({'userId': userId}).then((_) async {
           await FirebaseService.firebaseFirestore
               .collection(firebaseWeBuzzCollection)
               .doc(webuzz.docId)
               .update({'likesCount': FieldValue.increment(1)});
+
+          final targetUser = await FirebaseService.userByID(webuzz.authorId);
+          if (targetUser == null) return;
+
+          // If current user is not equal to the post author, send the notification
+          if (webuzz.authorId != userId) {
+            NotificationServices.sendNotification(
+              notificationType: NotificationType.postLiking,
+              targetUser: targetUser,
+              notifiactionRef: webuzz.docId,
+            );
+          }
         });
       } catch (e) {
         log(e);
